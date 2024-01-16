@@ -19,6 +19,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#define OpenBrace '{'
+#define CloseBrace '}'
 
 // #define uploadPath "/goinfre/zmakhkha/upload/"
 #define cgiResStr "/tmp/r"
@@ -57,6 +59,7 @@ struct Location : public Shared
 
 struct Server : public Shared
 {
+    Server();
     std::vector<Location> location;
     std::pair<std::string, std::string> listen;
     std::string server_name;
