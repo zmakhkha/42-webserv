@@ -36,7 +36,7 @@
 #include <fstream>
 
 #define MAX_CLENTS 1024
-#define PAGE 1024
+#define PAGE 4096
 
 class request;
 class Response;
@@ -62,6 +62,8 @@ class MServer
 		void sendReesp(int index);
 		int getClientIndex(int fd);
 		int getFreeClientIdx();
+
+		void deleteClient(int index);
 
 		~MServer();
 		MServer();

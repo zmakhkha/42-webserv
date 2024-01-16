@@ -140,40 +140,56 @@ void MServer::routin() {
 void MServer::sendReesp(int index) {
   std::cout << "---------> index : " << index << std::endl;
   respMap[index].RetResponse(reqsMap[index]);
-  st_ res = respMap[index].getRet();
+  std::cout << "---------> obj : " <<  &respMap[index] << std::endl;
 
   if (!respMap[index].headersent) {
-     send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
-     write(1, res.c_str(), strlen(res.c_str()));
+    st_ res = respMap[index].getRet();
+    send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
+    write(1, res.c_str(), strlen(res.c_str()));
     respMap[index].headersent = true;
   }
 
-  int fd = respMap[index].getFd();
-  if (fd != -1) {
-    char *buff = new char[PAGE];
-    respMap[index].sentData = read(fd, buff, PAGE);
-    if (respMap[index].sentData == -1) {
-      delete [] buff;
-      close(fds[index].fd);
-      fds[index].fd = -1;
-      fds[index].events = POLLIN;
-      if (reqsMap.find(index) != reqsMap.end())
-        reqsMap.erase(index);
-    } else {
-      // Only send data if read was successful
-      send(fds[index].fd, buff, respMap[index].sentData, 0);
-      delete [] buff;
-      return;
+int fd = respMap[index].getFd();
+    if (respMap[index].headersent && fd == -1) {
+        deleteClient(index);
+        return;
     }
-  } else {
-    close(fds[index].fd);
-    fds[index].fd = -1;
-    fds[index].events = POLLIN;
-    if (reqsMap.find(index) != reqsMap.end())
-      reqsMap.erase(index);
-  }
+
+    if (fd != -1) {
+      std::cout << "this is the file fd : " << fd << std::endl;
+    char *buff = new char[PAGE];
+    off_t currentPosition = lseek(fd, 0, SEEK_CUR);
+    std::cout << "Before read - File position: " << currentPosition << std::endl;
+
+    respMap[index].sentData = read(fd, buff, PAGE);
+    if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
+        delete[] buff;
+        deleteClient(index);
+    } else {
+        send(fds[index].fd, buff, respMap[index].sentData, 0);
+        //write(1, buff, respMap[index].sentData);
+        delete[] buff;
+    }
+
+    currentPosition = lseek(fd, 0, SEEK_CUR);
+    std::cout << "After read - File position: " << currentPosition << std::endl;
+
+    fds[index].events = POLLOUT;
+    return;
 }
 
+    deleteClient(index);
+}
+
+void MServer::deleteClient(int index) {
+  if (reqsMap.find(index) != reqsMap.end())
+    reqsMap.erase(index);
+  if (respMap.find(index) != respMap.end())
+    respMap.erase(index);
+  close(fds[index].fd);
+  fds[index].fd = -1;
+  fds[index].events = POLLIN;
+}
 
 int MServer::getFreeClientIdx() {
   int i = 0;
