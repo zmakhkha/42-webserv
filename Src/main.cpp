@@ -14,6 +14,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <csignal>
+#include <iostream>
+#include <unistd.h>
 
 st_ getConf(int ac, char **av) {
   st_ conf;
@@ -33,7 +36,7 @@ st_ getConf(int ac, char **av) {
 
 int main(int ac, char **av) {
 
-  //signal(SIGPIPE, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN);
   try {
   st_ conf = getConf(ac, av);
   Config::setConfig(parseconf(conf));

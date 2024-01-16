@@ -17,6 +17,23 @@
 #include <sys/socket.h>
 #include <vector>
 #include <ostream>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <exception>
+#include <stdexcept>
+#include <strings.h>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <utility>
+#include <iostream>
+#include <cstring>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <fstream>
 
 #define MAX_CLENTS 1024
 #define PAGE 1024
@@ -28,7 +45,7 @@ class MServer
 {
 	private:
 		const std::vector<Server> servers;
-		struct pollfd fds[MAX_CLENTS];
+		struct pollfd *fds;
 		sockaddr_in addrserv;
 		int clientIndex;
 		size_t nserv;
@@ -39,11 +56,13 @@ class MServer
 		void handleClient(int clientFd);
 		void acceptClient(int index);
 		void cerror(const st_ &str);
-		int getClientIndex(int fd);
 		void initServers();
 		void Serving();
 		void routin();
 		void sendReesp(int index);
+		int getClientIndex(int fd);
+		int getFreeClientIdx();
+
 		~MServer();
 		MServer();
 };

@@ -4,6 +4,7 @@
 #include <ctime>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include "../Request/Request.hpp"
 #include "../ConfigFile/ConfigFile.hpp"
 #define SERVER "sa3dia"
@@ -54,6 +55,7 @@ class Response {
 		size_t			status_code;
 		Response(void);
 		bool		headersent;
+		ssize_t		sentData;
 		bool		sending;
 		void		init_TheCont_();
 		st_			Create_DefPage();
