@@ -1,19 +1,14 @@
-0000000   s   e   r   v   e   r  \0   {  \n                   l   i   s
-0000010   t   e   n  \0   l   o   c   a   l   h   o   s   t   :   8   0
-0000020   0   8   ;  \n                   r   o   o   t  \0   /   U   s
-0000030   e   r   s   /   a   b   s   a   i   d   ;  \n                
-0000040   m   a   x   _   b   o   d   y   _   s   i   z   e  \0   3   0
-0000050   0   M   ;  \n                   a   l   l   o   w  \0   G   E
-0000060   T       D   E   L   E   T   E       P   O   S   T   ;  \n    
-0000070               u   p   l   o   a   d   _   p   a   t   h  \0   /
-0000080   U   s   e   r   s   /   a   b   s   a   i   d   /   g   o   i
-0000090   n   f   r   e   /   u   p   /   ;  \n                   l   o
-00000a0   c   a   t   i   o   n  \0   /   a   l   l       {  \n        
-00000b0                           r   o   o   t  \0   /   U   s   e   r
-00000c0   s   /   a   b   s   a   i   d   /   D   e   s   k   t   o   p
-00000d0   /   t   o   P   u   s   h   ;  \n                            
-00000e0       a   u   t   o   i   n   d   e   x  \0   O   N   ;  \n    
-00000f0               }  \n   }  \n   B   a   d       S   y   n   t   a
-0000100   x  \n                                                        
-0000102
-server\0\n
+0000000   s   e   r   v   e   r  \n   {  \n   l   i   s   t   e   n  \n
+0000010   l   o   c   a   l   h   o   s   t   :   8   0   0   8   ;  \n
+0000020   r   o   o   t  \n   /   U   s   e   r   s   /   a   b   s   a
+0000030   i   d   ;  \n   m   a   x   _   b   o   d   y   _   s   i   z
+0000040   e  \n   3   0   0   M   ;  \n   a   l   l   o   w  \n   G   E
+0000050   T  \n   D   E   L   E   T   E  \n   P   O   S   T   ;  \n   u
+0000060   p   l   o   a   d   _   p   a   t   h  \n   /   U   s   e   r
+0000070   s   /   a   b   s   a   i   d   /   g   o   i   n   f   r   e
+0000080   /   u   p   /   ;  \n   l   o   c   a   t   i   o   n  \n   /
+0000090   a   l   l  \n   {  \n   r   o   o   t  \n   /   U   s   e   r
+00000a0   s   /   a   b   s   a   i   d   /   D   e   s   k   t   o   p
+00000b0   /   t   o   P   u   s   h   ;  \n   a   u   t   o   i   n   d
+00000c0   e   x  \n   O   N   ;  \n   }  \n   }  \n                    
+00000cb

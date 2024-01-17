@@ -21,6 +21,8 @@
 
 #define OpenBrace '{'
 #define CloseBrace '}'
+#define vect_ std::vector < Server >
+#define deque_ std::deque < std::string >
 
 // #define uploadPath "/goinfre/zmakhkha/upload/"
 #define cgiResStr "/tmp/r"
@@ -31,12 +33,16 @@ struct Methods
     bool Get;
     bool Post;
     bool Delete;
-    Methods();
     bool empty(); 
 };
 
 struct Shared
 {
+    Shared() {
+        allow.Get = false;
+        allow.Post = false;
+        allow.Delete = false;
+    }
     std::string root;
     std::string up_path;
     Methods allow;
@@ -44,7 +50,6 @@ struct Shared
     std::map<int, std::string> error_page;
     std::pair<size_t, char> body_size;
     std::pair<int, std::string> redirect;
-    Shared();
 };
 
 struct Location : public Shared
@@ -59,7 +64,6 @@ struct Location : public Shared
 
 struct Server : public Shared
 {
-    Server();
     std::vector<Location> location;
     std::pair<std::string, std::string> listen;
     std::string server_name;
@@ -75,5 +79,5 @@ class Config
         void print_config() const;
         static Server getservconf(std::string server_name, std::string host);
 };
-std::vector<Server> parseconf(const std::string &path);
+Server	parsing_conf(const std::string &path);
 #include "ConfigFile.tpp"
