@@ -108,8 +108,15 @@ void MServer::handleClient(int index) {
   char buffer[1024];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+  if(re == 0)
+  {
+  std::cout << ORANGE << "client with [index] " << index << " [fd] " << fds[index].fd << " Hanged !! "<< RESET << std::endl;
+    deleteClient(index);
+    return;
+  }
   if (re == -1) {
     perror("Error reading from client");
+    deleteClient(index);
     return;
     // exit(EXIT_FAILURE);
   }
