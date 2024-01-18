@@ -28,25 +28,26 @@ void	splitData( std::deque < std::string > &conf, std::string data ) {
 		conf.push_back(std::string(p));
 		p = std::strtok(NULL, " \n\t");
 	}
-}
-
-void	Error( deque_ conf, Server &fill ) {
-	throw std::runtime_error("Error: 404 element not found");
+	for (size_t in = 0; in < conf.size(); in++) {
+		if (conf[in + 1] == ";") {
+			conf[in] += conf[in + 1];
+			conf.erase(conf.begin() + in + 1);
+		}
+	}
 }
 
 void	Listen( deque_ &conf, Server &fill ) {
-	conf.pop_front();
-	char *p = std::strtok((char *)conf[0].c_str(), ";");
 	size_t pos = conf[0].find(":");
-	if (pos == std::string::npos)
-		throw std::runtime_error("Error: listen");
-	fill.listen.first = conf[0].substr(0, pos);
-	fill.listen.second = conf[0].substr(pos + 1, conf[0].find(";"));
+	if (pos == std::string::npos) {
+		fill.listen.first = conf[0].substr(0, pos);
+		fill.listen.second = conf[0].substr(pos + 1, conf[0].find(";"));
+	}
+	else
+		fill.listen.second = conf[0].substr(0, conf[0].find(";"));
 	conf.pop_front();
 }
 
 void	Root( deque_ &conf, Server &fill ) {
-	conf.pop_front();
 	size_t pos = conf[0].find(";");
 	if (pos != std::string::npos)
 		fill.root = conf[0].substr(0, pos);
@@ -57,7 +58,6 @@ void	Root( deque_ &conf, Server &fill ) {
 
 void	Allow( deque_ &conf, Server &fill ) {
 	int	count;
-	conf.pop_front();
 	for (count = 0; conf[0][conf[0].length() - 1] != ';' && count < 3; count++) {
 		(conf[0] == "POST") && (fill.allow.Post = true);
 		(conf[0] == "DELETE") && (fill.allow.Delete = true);
@@ -80,26 +80,28 @@ void	Allow( deque_ &conf, Server &fill ) {
 }
 
 void	errorPage( deque_ &conf, Server &fill ) {
-	conf.pop_front();
+	if (conf[1][conf[1].length() - 1] != ';')
+		throw std::runtime_error("Error: Missing ; at the end");
 	fill.error_page[ft_stoi(conf[0])] = conf[1];
 	conf.pop_front();
 	conf.pop_front();
 }
 
 void	maxbodySize( deque_ &conf, Server &fill ) {
-	conf.pop_front();
-	if (conf[0].length() < 1)
+	if (conf[0][conf[0].length() - 1] != ';')
+		throw std::runtime_error("Error: Missing ; at the end");
+	if (conf[0].length() < 3)
 		throw std::runtime_error("Error: Max Body Size bad Syntax");
-	char *p = std::strtok((char *)conf[0].c_str(), " ;");
-	std::cout << "->" << p << std::endl;
 	fill.body_size.first = ft_stoi(conf[0].substr(0, conf[0].length() - 2));
 	fill.body_size.second = conf[0][conf[0].length() - 2];
 	if (fill.body_size.second != 'G' && fill.body_size.second != 'B' && fill.body_size.second != 'M')
 		throw std::runtime_error("Error: Invalid Char");
 	conf.pop_front();
+	std::cout << "->>" << conf[0] << std::endl;
 }
 
 void	parseElement( deque_ &conf, int index, Server &fill ) {
+	conf.pop_front();
 	void (*f[])(deque_ &conf, Server &fill) = {
 		&maxbodySize, &Listen, &Root, &Allow, &errorPage,
 	};
@@ -116,14 +118,17 @@ Server	parsing_conf(const std::string &path) {
 		"location", "index", "cgi", "server_name", "upload_path"};
 	while (std::getline(file, data))
 		splitData( conf, data );
-	if (conf[0] != "server" && conf[1] != "{")
+	if (conf[0] != "server" || conf[1] != "{")
 		throw std::runtime_error("Error: Bad Syntax");
 	conf.pop_front();
 	conf.pop_front();
 	while (conf[0] != "}") {
-		for (int i = 0 ; i < directives->size(); i++)
-			if (directives[i] == conf[0])
+		for (int i = 0; i < (int)directives->size(); i++) {
+			if (directives[i] == conf[0]) // try to iterate using other method
 				parseElement( conf, i, serv );
+			else
+				throw std::runtime_error("Error: Unknown Directive");
+		}
 	}
 	return serv;
 }
@@ -140,6 +145,7 @@ void	printfVec( vect_ conf ) {
 
 int main(int ac, char **av) {
 	try {
+		(void)ac;
 		std::vector < Server > config;
 		config.push_back(parsing_conf(av[1]));
 		printfVec(config);
