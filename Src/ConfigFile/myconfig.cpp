@@ -14,6 +14,14 @@
 #include <fstream>
 #include <sys/stat.h>
 
+int	ft_stoi( std::string var ) {
+	int ret;
+	std::stringstream   ss(var);
+	if (!(ss >> ret))
+		throw std::runtime_error("Error: Not Integer");
+	return ret;
+}
+
 void	splitData( std::deque < std::string > &conf, std::string data ) {
 	char *p = std::strtok((char *)data.c_str(), " \n\t;");
 	while (p != NULL) {
@@ -28,7 +36,7 @@ void	Error( deque_ conf, Server &fill ) {
 
 void	Listen( deque_ &conf, Server &fill ) {
 	conf.pop_front();
-	std::strtok((char *)conf[0].c_str(), ";");
+	char *p = std::strtok((char *)conf[0].c_str(), ";");
 	size_t pos = conf[0].find(":");
 	if (pos == std::string::npos)
 		throw std::runtime_error("Error: listen");
@@ -71,9 +79,29 @@ void	Allow( deque_ &conf, Server &fill ) {
 	conf.pop_front();
 }
 
+void	errorPage( deque_ &conf, Server &fill ) {
+	conf.pop_front();
+	fill.error_page[ft_stoi(conf[0])] = conf[1];
+	conf.pop_front();
+	conf.pop_front();
+}
+
+void	maxbodySize( deque_ &conf, Server &fill ) {
+	conf.pop_front();
+	if (conf[0].length() < 1)
+		throw std::runtime_error("Error: Max Body Size bad Syntax");
+	char *p = std::strtok((char *)conf[0].c_str(), " ;");
+	std::cout << "->" << p << std::endl;
+	fill.body_size.first = ft_stoi(conf[0].substr(0, conf[0].length() - 2));
+	fill.body_size.second = conf[0][conf[0].length() - 2];
+	if (fill.body_size.second != 'G' && fill.body_size.second != 'B' && fill.body_size.second != 'M')
+		throw std::runtime_error("Error: Invalid Char");
+	conf.pop_front();
+}
+
 void	parseElement( deque_ &conf, int index, Server &fill ) {
 	void (*f[])(deque_ &conf, Server &fill) = {
-		&Error, &Listen, &Root, &Allow,
+		&maxbodySize, &Listen, &Root, &Allow, &errorPage,
 	};
 	(void)(*f[index])(conf, fill);
 }
@@ -83,9 +111,9 @@ Server	parsing_conf(const std::string &path) {
 	deque_			conf; // get the vector and fill it somehow
 	std::string		data;
 	std::fstream	file(path);
-	std::string		directives[] = {"autoindex",
-		"listen", "root", "allow",  "upload_path",
-		"location", "index", "cgi", "server_name"};
+	std::string		directives[] = {"max_body_size",
+		"listen", "root", "allow",  "error_page",
+		"location", "index", "cgi", "server_name", "upload_path"};
 	while (std::getline(file, data))
 		splitData( conf, data );
 	if (conf[0] != "server" && conf[1] != "{")
@@ -96,10 +124,6 @@ Server	parsing_conf(const std::string &path) {
 		for (int i = 0 ; i < directives->size(); i++)
 			if (directives[i] == conf[0])
 				parseElement( conf, i, serv );
-			// else {
-				// std::cout << conf[0] << std::endl;
-				// throw std::runtime_error("Error: Unknown directive");
-			// }
 	}
 	return serv;
 }
@@ -109,8 +133,9 @@ void	printfVec( vect_ conf ) {
 	std::cout << "\tlisten " << conf[0].listen.first << ":" << conf[0].listen.second << std::endl;
 	std::cout << "\troot " << conf[0].root << std::endl;
 	std::cout << "\tallow " << conf[0].allow.Get << " " << conf[0].allow.Post << " " << conf[0].allow.Delete << std::endl;
+	std::cout << "\terror_page " << conf[0].error_page[404] << std::endl;
+	std::cout << "\tmax_body_size " << conf[0].body_size.first << conf[0].body_size.second << std::endl;
 	std::cout << "}\n";
-
 }
 
 int main(int ac, char **av) {
