@@ -80,4 +80,5 @@ class Config
         static Server getservconf(std::string server_name, std::string host);
 };
 Server	parsing_conf(const std::string &path);
-#include "ConfigFile.tpp"
+int     ft_stoi( std::string var );
+#include "myconfig.tpp"

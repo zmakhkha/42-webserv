@@ -14,6 +14,13 @@
 #include <fstream>
 #include <sys/stat.h>
 
+void	validate( Server check ) {
+	(check.root.empty()) && (throw std::runtime_error("Error: root is needed"), 0);
+	(check.up_path.empty()) && (throw std::runtime_error("Error: upPath is needed"), 0);
+	(check.listen.first.empty() && check.listen.second.empty()) && (throw std::runtime_error("Error: Port is needed"), 0);
+	// (check.allow.empty()) && (throw std::runtime_error("Error: Methods is needed"), 0);
+}
+
 int	ft_stoi( std::string var ) {
 	int ret;
 	std::stringstream   ss(var);
@@ -36,86 +43,62 @@ void	splitData( std::deque < std::string > &conf, std::string data ) {
 	}
 }
 
-void	Listen( deque_ &conf, Server &fill ) {
-	size_t pos = conf[0].find(":");
-	if (pos == std::string::npos) {
-		fill.listen.first = conf[0].substr(0, pos);
-		fill.listen.second = conf[0].substr(pos + 1, conf[0].find(";"));
+void	parseElementLoc( deque_ &conf, int index, Location &fill ) {
+	conf.pop_front();
+	if (conf[0].empty())
+		throw std::runtime_error("Error: empty Directive");
+	void (*fc[])(deque_ &conf, Location &fill) = {
+		&maxbodySize, &Root, &Allow, &errorPage,
+		&uploadPath, &cgi, &autoindex,
+	};
+	(void)(*fc[index])(conf, fill);
+}
+
+void	location( deque_ &conf, Server &fill ) { // location needs to be full with the same elements as  server | ; at the end | {} | multiple servers | comments
+	Location	loc;
+	int 		i;
+	(conf[0][0] != '/') && (throw std::runtime_error("Error: Bad Prefix"), 0);
+	loc.prefix = conf[0];
+	conf.pop_front();
+	(conf[0] != "{") && (throw std::runtime_error("Error: Bad Syntax Location"), 0);
+	conf.pop_front();
+	std::string		directives[] = {"max_body_size",
+		"root", "allow",  "error_page",
+		"upload_path", "cgi", "autoindex", "index"};
+	while (conf[0] != "}") {
+		for (i = 0; i < (int)directives->size(); i++) {
+			if (directives[i] == conf[0]) {
+				parseElementLoc( conf, i, loc );
+				break ;
+			}
+		}
+		if (i == (int)directives->size())
+			throw std::runtime_error("Error: no such Directive as" + conf[0]);
 	}
-	else
-		fill.listen.second = conf[0].substr(0, conf[0].find(";"));
+	fill.location.push_back(loc);
 	conf.pop_front();
-}
-
-void	Root( deque_ &conf, Server &fill ) {
-	size_t pos = conf[0].find(";");
-	if (pos != std::string::npos)
-		fill.root = conf[0].substr(0, pos);
-	else
-		throw std::runtime_error("Error: missing \";\" at the end");
-	conf.pop_front();
-}
-
-void	Allow( deque_ &conf, Server &fill ) {
-	int	count;
-	for (count = 0; conf[0][conf[0].length() - 1] != ';' && count < 3; count++) {
-		(conf[0] == "POST") && (fill.allow.Post = true);
-		(conf[0] == "DELETE") && (fill.allow.Delete = true);
-		(conf[0] == "GET") && (fill.allow.Get = true);
-		if (conf[0] != "GET" && conf[0] != "POST" && conf[0] != "DELETE")
-			throw std::runtime_error("Error: Unknown HTTP method " + conf[0].substr(0, conf[0].find(";")));
-		conf.pop_front();
-	}
-	if (conf[0][conf[0].length() - 1] != ';')
-		throw std::runtime_error("Error: missing ; at the end");
-	conf[0] = conf[0].substr(0, conf[0].find(";"));
-	if (conf[0] != "GET" && conf[0] != "POST" && conf[0] != "DELETE")
-		throw std::runtime_error("Error: Unknown HTTP method " + conf[0]);
-	(conf[0] == "POST") && (fill.allow.Post = true);
-	(conf[0] == "DELETE") && (fill.allow.Delete = true);
-	(conf[0] == "GET") && (fill.allow.Get = true);
-	if (count > 2)
-		std::runtime_error("Error: too much args");
-	conf.pop_front();
-}
-
-void	errorPage( deque_ &conf, Server &fill ) {
-	if (conf[1][conf[1].length() - 1] != ';')
-		throw std::runtime_error("Error: Missing ; at the end");
-	fill.error_page[ft_stoi(conf[0])] = conf[1];
-	conf.pop_front();
-	conf.pop_front();
-}
-
-void	maxbodySize( deque_ &conf, Server &fill ) {
-	if (conf[0][conf[0].length() - 1] != ';')
-		throw std::runtime_error("Error: Missing ; at the end");
-	if (conf[0].length() < 3)
-		throw std::runtime_error("Error: Max Body Size bad Syntax");
-	fill.body_size.first = ft_stoi(conf[0].substr(0, conf[0].length() - 2));
-	fill.body_size.second = conf[0][conf[0].length() - 2];
-	if (fill.body_size.second != 'G' && fill.body_size.second != 'B' && fill.body_size.second != 'M')
-		throw std::runtime_error("Error: Invalid Char");
-	conf.pop_front();
-	std::cout << "->>" << conf[0] << std::endl;
 }
 
 void	parseElement( deque_ &conf, int index, Server &fill ) {
 	conf.pop_front();
+	if (conf[0].empty())
+		throw std::runtime_error("Error: empty Directive");
 	void (*f[])(deque_ &conf, Server &fill) = {
 		&maxbodySize, &Listen, &Root, &Allow, &errorPage,
+		&uploadPath, &serverName, &location,
 	};
 	(void)(*f[index])(conf, fill);
 }
 
 Server	parsing_conf(const std::string &path) {
+	int				i;
 	Server			serv;
 	deque_			conf; // get the vector and fill it somehow
 	std::string		data;
 	std::fstream	file(path);
 	std::string		directives[] = {"max_body_size",
 		"listen", "root", "allow",  "error_page",
-		"location", "index", "cgi", "server_name", "upload_path"};
+		"upload_path", "server_name", "location", "cgi", "autoindex", "index"};
 	while (std::getline(file, data))
 		splitData( conf, data );
 	if (conf[0] != "server" || conf[1] != "{")
@@ -123,13 +106,16 @@ Server	parsing_conf(const std::string &path) {
 	conf.pop_front();
 	conf.pop_front();
 	while (conf[0] != "}") {
-		for (int i = 0; i < (int)directives->size(); i++) {
-			if (directives[i] == conf[0]) // try to iterate using other method
+		for (i = 0; i < (int)directives->size(); i++) {
+			if (directives[i] == conf[0]) {
 				parseElement( conf, i, serv );
-			else
-				throw std::runtime_error("Error: Unknown Directive");
+				break ;
+			}
 		}
+		if (i == (int)directives->size())
+			throw std::runtime_error("Error: no such Directive as" + conf[0]);
 	}
+	validate(serv);
 	return serv;
 }
 
@@ -140,6 +126,13 @@ void	printfVec( vect_ conf ) {
 	std::cout << "\tallow " << conf[0].allow.Get << " " << conf[0].allow.Post << " " << conf[0].allow.Delete << std::endl;
 	std::cout << "\terror_page " << conf[0].error_page[404] << std::endl;
 	std::cout << "\tmax_body_size " << conf[0].body_size.first << conf[0].body_size.second << std::endl;
+	std::cout << "\tupload_path " << conf[0].up_path << std::endl;
+	std::cout << "\tservername " << conf[0].server_name << std::endl;
+	std::cout << "\tlocation " << conf[0].location[0].prefix << " {" << std::endl;
+	std::cout << "\t\tautoindex " << conf[0].location[0].autoindex << std::endl;
+	std::cout << "\t\tupload_path " << conf[0].location[0].up_path << std::endl;
+	std::cout << "\t\tcgi" << " " << conf[0].location[0].cgi.first << " " << conf[0].location[0].cgi.second << std::endl;
+	std::cout << "\t}\n";
 	std::cout << "}\n";
 }
 
