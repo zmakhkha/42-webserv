@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define RED "\u001b[31m"
+#define ORANGE "\u001b[33m"
 #define GREEN "\u001b[32m"
 #define RESET "\u001b[0m"
 
@@ -102,6 +104,7 @@ void MServer::acceptClient(int index) {
 }
 
 void MServer::handleClient(int index) {
+  std::cout << ORANGE << "handling client with [index] " << index << " [fd] " << fds[index].fd << RESET << std::endl;
   char buffer[1024];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
@@ -115,29 +118,31 @@ void MServer::handleClient(int index) {
 }
 
 void MServer::routin() {
+  int i;
   while (true) {
     int status = poll(fds, MAX_CLENTS, -1);
     if (status == -1) {
       perror("Error in poll");
-      break;
+      continue;
     }
-    for (int i = 0; i < MAX_CLENTS; i++) {
+    i = -1;
+    while (++i < nserv) {
       if (fds[i].revents & POLLIN) {
-        if (i < nserv)
-          acceptClient(i);
+        acceptClient(i);
       }
       if (fds[i].revents & (POLLHUP | POLLERR)) {
         deleteClient(i);
-}
-
-    }
-    for (int i = nserv; (i < MAX_CLENTS) && (fds[i].fd != -1); i++) {
-
-      if (fds[i].events & POLLIN) {
-        handleClient(i);
       }
-      if (fds[i].events & POLLOUT) {
-        sendReesp(i);
+    }
+    i = nserv - 1;
+    while (++i < MAX_CLENTS) {
+      if (fds[i].fd != -1) {
+        if (fds[i].events & POLLIN) {
+          handleClient(i);
+        }
+        if (fds[i].events & POLLOUT) {
+          sendReesp(i);
+        }
       }
     }
   }
@@ -157,27 +162,28 @@ void MServer::sendReesp(int index) {
   }
 
   int fd = respMap[index].getFd();
-    if (respMap[index].headersent && fd == -1) {
-        deleteClient(index);
-        return;
-    }
+  if (respMap[index].headersent && fd == -1) {
+    deleteClient(index);
+    return;
+  }
 
-    if (fd != -1) {
+  if (fd != -1) {
     char *buff = new char[PAGE];
     respMap[index].sentData = read(fd, buff, PAGE);
     if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
-        delete[] buff;
-        deleteClient(index);
+      delete[] buff;
+      close(fd);
+      deleteClient(index);
     } else {
-      //write(1, buff, respMap[index].sentData);
-        send(fds[index].fd, buff, respMap[index].sentData, 0);
-        delete[] buff;
+      // write(1, buff, respMap[index].sentData);
+      send(fds[index].fd, buff, respMap[index].sentData, 0);
+      delete[] buff;
     }
     fds[index].events = POLLOUT;
     return;
-}
+  }
 
-    deleteClient(index);
+  deleteClient(index);
 }
 
 void MServer::deleteClient(int index) {
@@ -190,6 +196,8 @@ void MServer::deleteClient(int index) {
   close(fds[index].fd);
   fds[index].fd = -1;
   fds[index].events = POLLIN;
+  std::cout << RED << "[Client left !!]" << RESET << std::endl;
+
 }
 
 int MServer::getFreeClientIdx() {
