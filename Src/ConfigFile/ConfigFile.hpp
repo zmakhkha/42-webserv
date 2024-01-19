@@ -79,6 +79,6 @@ class Config
         void print_config() const;
         static Server getservconf(std::string server_name, std::string host);
 };
-Server	parsing_conf(const std::string &path);
+Server	parsing_conf(std::string data);
 int     ft_stoi( std::string var );
 #include "myconfig.tpp"

@@ -30,6 +30,9 @@ int	ft_stoi( std::string var ) {
 }
 
 void	splitData( std::deque < std::string > &conf, std::string data ) {
+	size_t pos = data.find("#");
+	if (pos != std::string::npos)
+		data = data.substr(0, pos);
 	char *p = std::strtok((char *)data.c_str(), " \n\t;");
 	while (p != NULL) {
 		conf.push_back(std::string(p));
@@ -65,16 +68,18 @@ void	location( deque_ &conf, Server &fill ) { // location needs to be full with 
 	std::string		directives[] = {"max_body_size",
 		"root", "allow",  "error_page",
 		"upload_path", "cgi", "autoindex", "index"};
-	while (conf[0] != "}") {
+	while (conf.size() > 0 && conf[0] != "}") {
 		for (i = 0; i < (int)directives->size(); i++) {
 			if (directives[i] == conf[0]) {
 				parseElementLoc( conf, i, loc );
 				break ;
 			}
+			if (i == 7)
+				throw std::runtime_error("Error: no such Directive as " + conf[0]);
 		}
-		if (i == (int)directives->size())
-			throw std::runtime_error("Error: no such Directive as" + conf[0]);
 	}
+	if (conf[0] != "}")
+		throw std::runtime_error("Error: missing } at the end of the scope");
 	fill.location.push_back(loc);
 	conf.pop_front();
 }
@@ -90,58 +95,96 @@ void	parseElement( deque_ &conf, int index, Server &fill ) {
 	(void)(*f[index])(conf, fill);
 }
 
-Server	parsing_conf(const std::string &path) {
+Server	parsing_conf( std::string data ) {
 	int				i;
 	Server			serv;
 	deque_			conf; // get the vector and fill it somehow
-	std::string		data;
-	std::fstream	file(path);
 	std::string		directives[] = {"max_body_size",
 		"listen", "root", "allow",  "error_page",
 		"upload_path", "server_name", "location", "cgi", "autoindex", "index"};
-	while (std::getline(file, data))
-		splitData( conf, data );
+	splitData( conf, data );
 	if (conf[0] != "server" || conf[1] != "{")
 		throw std::runtime_error("Error: Bad Syntax");
 	conf.pop_front();
 	conf.pop_front();
-	while (conf[0] != "}") {
+	while (conf.size() > 0 && conf[0] != "}") {
 		for (i = 0; i < (int)directives->size(); i++) {
 			if (directives[i] == conf[0]) {
 				parseElement( conf, i, serv );
 				break ;
 			}
+			if (i == 10)
+				throw std::runtime_error("Error: no such Directive as " + conf[0]);
 		}
-		if (i == (int)directives->size())
-			throw std::runtime_error("Error: no such Directive as" + conf[0]);
 	}
+	if (conf[0] != "}")
+		throw std::runtime_error("Error: missing } at the end of the scope");
 	validate(serv);
 	return serv;
 }
 
 void	printfVec( vect_ conf ) {
-	std::cout << "server {\n";
-	std::cout << "\tlisten " << conf[0].listen.first << ":" << conf[0].listen.second << std::endl;
-	std::cout << "\troot " << conf[0].root << std::endl;
-	std::cout << "\tallow " << conf[0].allow.Get << " " << conf[0].allow.Post << " " << conf[0].allow.Delete << std::endl;
-	std::cout << "\terror_page " << conf[0].error_page[404] << std::endl;
-	std::cout << "\tmax_body_size " << conf[0].body_size.first << conf[0].body_size.second << std::endl;
-	std::cout << "\tupload_path " << conf[0].up_path << std::endl;
-	std::cout << "\tservername " << conf[0].server_name << std::endl;
-	std::cout << "\tlocation " << conf[0].location[0].prefix << " {" << std::endl;
-	std::cout << "\t\tautoindex " << conf[0].location[0].autoindex << std::endl;
-	std::cout << "\t\tupload_path " << conf[0].location[0].up_path << std::endl;
-	std::cout << "\t\tcgi" << " " << conf[0].location[0].cgi.first << " " << conf[0].location[0].cgi.second << std::endl;
-	std::cout << "\t}\n";
-	std::cout << "}\n";
+	for (int j = 0; j < (int)conf.size(); j++) {
+		std::cout << "server {\n";
+		std::cout << "\tlisten " << conf[j].listen.first << ":" << conf[j].listen.second << std::endl;
+		std::cout << "\troot " << conf[j].root << std::endl;
+		std::cout << "\tallow " << conf[j].allow.Get << " " << conf[j].allow.Post << " " << conf[j].allow.Delete << std::endl;
+		std::cout << "\terror_page " << conf[j].error_page[404] << std::endl;
+		std::cout << "\tmax_body_size " << conf[j].body_size.first << conf[j].body_size.second << std::endl;
+		std::cout << "\tupload_path " << conf[j].up_path << std::endl;
+		std::cout << "\tservername " << conf[j].server_name << std::endl;
+		for (int i = 0; i < (int)conf[j].location.size(); i++) {
+			std::cout << "\tlocation " << conf[j].location[i].prefix << " {" << std::endl;
+			std::cout << "\t\tautoindex " << conf[j].location[i].autoindex << std::endl;
+			std::cout << "\t\tupload_path " << conf[j].location[i].up_path << std::endl;
+			std::cout << "\t\tcgi" << " " << conf[j].location[i].cgi.first << " " << conf[0].location[i].cgi.second << std::endl;
+			std::cout << "\t}\n";
+		}
+		std::cout << "}\n";
+	}
+}
+
+int		countservers( std::string path ) { // error
+	std::string		var;
+	std::fstream	file(path);
+	int				servers = 0;
+	while (std::getline( file, var )) {
+		char *p = std::strtok((char *)var.c_str(), " \n");
+		if (p)
+ 			std::string	var(p);
+		if (var == "server{")
+			servers++;
+	}
+	return servers;
+}
+
+void	LooponServers( std::vector < Server > &config, std::string path ) {
+	std::string		var;
+	std::string		data;
+	std::fstream	file(path);
+	// int count = countservers( path );
+	// std::cout << count << std::endl;
+	if (!file.is_open())
+		throw std::runtime_error("Error: Couldnt open the file");
+	while (std::getline(file, var))
+		data += var + "\n";
+	for (int i = 0; !data.empty() && i < 5; i++) {
+		config.push_back(parsing_conf(data));
+		size_t brace = data.find("}");
+		if (brace != std::string::npos && data[brace + 2] == '}')
+			data.erase(0, brace + 3);
+	}
 }
 
 int main(int ac, char **av) {
 	try {
 		(void)ac;
 		std::vector < Server > config;
-		config.push_back(parsing_conf(av[1]));
-		printfVec(config);
+		LooponServers( config, av[1] );
+		// printfVec(config);
+		std::cout << config[2].location[2].cgi.first << std::endl;
+		std::cout << config[2].location[2].autoindex << std::endl;
+		std::cout << config[2].location[2].prefix << std::endl;
 	}
 	catch ( std::exception &e ) {
 		std::cout << e.what() << std::endl;
