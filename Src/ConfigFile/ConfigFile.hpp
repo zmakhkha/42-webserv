@@ -33,16 +33,13 @@ struct Methods
     bool Get;
     bool Post;
     bool Delete;
-    bool empty(); 
+    bool empty();
+    Methods();
+    ~Methods();
 };
 
 struct Shared
 {
-    Shared() {
-        allow.Get = false;
-        allow.Post = false;
-        allow.Delete = false;
-    }
     std::string root;
     std::string up_path;
     Methods allow;
@@ -80,5 +77,6 @@ class Config
         static Server getservconf(std::string server_name, std::string host);
 };
 Server	parsing_conf(std::string data);
+vect_	LooponServers( vect_ &config, std::string path );
 int     ft_stoi( std::string var );
 #include "myconfig.tpp"

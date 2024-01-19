@@ -1,4 +1,21 @@
-#include "ConfigFile.hpp"
+#include<iostream>
+#include <string>
+//#include <sys/_types/_size_t.h>
+#include <vector>
+#include <deque>
+#include <map>
+#include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <cstring>
+#include <ostream>
+#include <sstream>
+#include <stdexcept>
+#include <utility>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 void	missingpoint( std::string	parse ) {
 	size_t bpos = parse.find(";");

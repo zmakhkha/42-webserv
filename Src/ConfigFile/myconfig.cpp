@@ -14,11 +14,20 @@
 #include <fstream>
 #include <sys/stat.h>
 
+Methods::Methods() : Get(false), Post(false), Delete(false) {}
+Methods::~Methods() {}
+
+bool Methods::empty() { return ((!Get && !Post && !Delete)); }
+
+// void Config::setConfig(std::vector<Server> serv) { server = serv; }
+
+// const std::vector<Server> &Config::getConfig() { return server; }
+
 void	validate( Server check ) {
-	(check.root.empty()) && (throw std::runtime_error("Error: root is needed"), 0);
-	(check.up_path.empty()) && (throw std::runtime_error("Error: upPath is needed"), 0);
 	(check.listen.first.empty() && check.listen.second.empty()) && (throw std::runtime_error("Error: Port is needed"), 0);
-	// (check.allow.empty()) && (throw std::runtime_error("Error: Methods is needed"), 0);
+	(check.root.empty()) && (throw std::runtime_error("Error: root is needed"), 0);
+	(check.allow.empty()) && (throw std::runtime_error("Error: Methods is needed"), 0);
+	(check.up_path.empty()) && (throw std::runtime_error("Error: upPath is needed"), 0);
 }
 
 int	ft_stoi( std::string var ) {
@@ -37,12 +46,6 @@ void	splitData( std::deque < std::string > &conf, std::string data ) {
 	while (p != NULL) {
 		conf.push_back(std::string(p));
 		p = std::strtok(NULL, " \n\t");
-	}
-	for (size_t in = 0; in < conf.size(); in++) {
-		if (conf[in + 1] == ";") {
-			conf[in] += conf[in + 1];
-			conf.erase(conf.begin() + in + 1);
-		}
 	}
 }
 
@@ -102,7 +105,18 @@ Server	parsing_conf( std::string data ) {
 	std::string		directives[] = {"max_body_size",
 		"listen", "root", "allow",  "error_page",
 		"upload_path", "server_name", "location", "cgi", "autoindex", "index"};
-	splitData( conf, data );
+	// char *p = std::strtok((char *)data.c_str(), "\n");
+	// while (p != NULL) {
+		// std::cout << "->>" << p <<std::endl;
+		splitData( conf, data );
+	// 	p = std::strtok(NULL, "\n");
+	// }
+	for (size_t in = 0; in < conf.size(); in++) {
+		if (conf[in + 1] == ";") {
+			conf[in] += conf[in + 1];
+			conf.erase(conf.begin() + in + 1);
+		}
+	}
 	if (conf[0] != "server" || conf[1] != "{")
 		throw std::runtime_error("Error: Bad Syntax");
 	conf.pop_front();
@@ -117,9 +131,9 @@ Server	parsing_conf( std::string data ) {
 				throw std::runtime_error("Error: no such Directive as " + conf[0]);
 		}
 	}
+	validate(serv);
 	if (conf[0] != "}")
 		throw std::runtime_error("Error: missing } at the end of the scope");
-	validate(serv);
 	return serv;
 }
 
@@ -145,35 +159,40 @@ void	printfVec( vect_ conf ) {
 }
 
 int		countservers( std::string path ) { // error
+	int				servers = 0;
 	std::string		var;
 	std::fstream	file(path);
-	int				servers = 0;
 	while (std::getline( file, var )) {
-		char *p = std::strtok((char *)var.c_str(), " \n");
-		if (p)
- 			std::string	var(p);
-		if (var == "server{")
-			servers++;
+		std::strtok((char *)var.c_str(), " \t");
+		std::cout << var << std::endl;
+		size_t pos = var.find("server{");
+		if (pos == std::string::npos)
+			continue ;
+		var.erase(0, pos + 8);
+		servers++;
 	}
 	return servers;
 }
 
-void	LooponServers( std::vector < Server > &config, std::string path ) {
+vect_	LooponServers( vect_ &config, std::string path ) {
 	std::string		var;
 	std::string		data;
 	std::fstream	file(path);
-	// int count = countservers( path );
+	int count = countservers( path );
 	// std::cout << count << std::endl;
+	// exit(0);
 	if (!file.is_open())
 		throw std::runtime_error("Error: Couldnt open the file");
 	while (std::getline(file, var))
 		data += var + "\n";
-	for (int i = 0; !data.empty() && i < 5; i++) {
+	for (int i = 0; !data.empty() && i < count; i++) {
 		config.push_back(parsing_conf(data));
+		std::cout << "->>" << data << std::endl;
 		size_t brace = data.find("}");
 		if (brace != std::string::npos && data[brace + 2] == '}')
-			data.erase(0, brace + 3);
+			data.erase(0, brace + 4);
 	}
+	return config;
 }
 
 int main(int ac, char **av) {
@@ -182,9 +201,9 @@ int main(int ac, char **av) {
 		std::vector < Server > config;
 		LooponServers( config, av[1] );
 		// printfVec(config);
-		std::cout << config[2].location[2].cgi.first << std::endl;
-		std::cout << config[2].location[2].autoindex << std::endl;
-		std::cout << config[2].location[2].prefix << std::endl;
+		// std::cout << config[0].location[7].cgi.first << std::endl;
+		// std::cout << config[0].location[7].autoindex << std::endl;
+		// std::cout << config[0].location[7].prefix << std::endl;
 	}
 	catch ( std::exception &e ) {
 		std::cout << e.what() << std::endl;
