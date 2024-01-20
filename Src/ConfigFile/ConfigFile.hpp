@@ -71,12 +71,11 @@ class Config
     private:
         static std::vector<Server> server;
     public:
-        static void setConfig(std::vector<Server> serv);
         static const std::vector<Server> &getConfig();
-        void print_config() const;
         static Server getservconf(std::string server_name, std::string host);
+        // static void	LooponServers( std::string path );
 };
 Server	parsing_conf(std::string data);
-vect_	LooponServers( vect_ &config, std::string path );
+void	LooponServers( vect_ &conf, std::string path );
 int     ft_stoi( std::string var );
 #include "myconfig.tpp"

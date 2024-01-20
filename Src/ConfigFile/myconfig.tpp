@@ -29,7 +29,7 @@ void	Listen( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	size_t pos = conf[0].find(":");
 	if (pos == std::string::npos)
 		fill.listen.first = conf[0].substr(0, conf[0].find(";"));
@@ -45,7 +45,7 @@ void	Root( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	fill.root = conf[0].substr(0, conf[0].length() - 1);
 	conf.pop_front();
 }
@@ -64,7 +64,7 @@ void	Allow( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	conf[0] = conf[0].substr(0, conf[0].length() - 1);
 	if (conf[0] != "GET" && conf[0] != "POST" && conf[0] != "DELETE")
 		throw std::runtime_error("Error: Unknown HTTP method " + conf[0]);
@@ -93,7 +93,7 @@ void	maxbodySize( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	if (conf[0].length() < 3)
 		throw std::runtime_error("Error: Max Body Size bad Syntax");
 	fill.body_size.first = ft_stoi(conf[0].substr(0, conf[0].length() - 2));
@@ -108,7 +108,7 @@ void	uploadPath( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	conf[0] = conf[0].substr(0, conf[0].length() - 1);
 	fill.up_path = conf[0];
 	if (access(fill.up_path.c_str(), F_OK) == -1)
@@ -121,7 +121,7 @@ void	autoindex( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	conf[0] = conf[0].substr(0, conf[0].length() - 1);
 	if (conf[0] != "ON" && conf[0] != "OFF" && conf[0] != "on" && conf[0] != "off")
 		throw std::runtime_error("Error: Bad keyword Autoindex " + conf[0]);
@@ -135,7 +135,7 @@ void	serverName( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	conf[0] = conf[0].substr(0, conf[0].length() - 1);
 	fill.server_name = conf[0];
 	conf.pop_front();
@@ -148,8 +148,23 @@ void	cgi( deque_ &conf, T &fill ) {
 	if (conf[0][conf[0].length() - 1] == ';')
 		missingpoint( conf[0] );
 	else
-		throw std::runtime_error("Error: Multiple ; at the end");
+		throw std::runtime_error("Error: Missing ; at the end");
 	conf[0] = conf[0].substr(0, conf[0].find(";"));
 	fill.cgi.second = conf[0];
+	conf.pop_front();
+}
+
+template < typename T >
+void	indexfiles( deque_ &conf, T &fill ) {
+	for (int i = 0; i < 3 && conf[0][conf[0].length() - 1] != ';'; i++) {
+		fill.index.push_back(conf[0]);
+		conf.pop_front();
+		if (conf[0][conf[0].length() - 1] == ';')
+			missingpoint( conf[0] );
+	}
+	if (conf[0][conf[0].length() - 1] != ';')
+		throw std::runtime_error("Error: Missing ; at the end");
+	conf[0] = conf[0].substr(0, conf[0].find(";"));
+	fill.index.push_back(conf[0]);
 	conf.pop_front();
 }

@@ -40,8 +40,10 @@ int	ft_stoi( std::string var ) {
 
 void	splitData( std::deque < std::string > &conf, std::string data ) {
 	size_t pos = data.find("#");
-	if (pos != std::string::npos)
-		data = data.substr(0, pos);
+	if (pos != std::string::npos) {
+		std::string	trimmed = &data[pos];
+		data = data.erase(pos, trimmed.find("\n"));
+	}
 	char *p = std::strtok((char *)data.c_str(), " \n\t;");
 	while (p != NULL) {
 		conf.push_back(std::string(p));
@@ -55,9 +57,16 @@ void	parseElementLoc( deque_ &conf, int index, Location &fill ) {
 		throw std::runtime_error("Error: empty Directive");
 	void (*fc[])(deque_ &conf, Location &fill) = {
 		&maxbodySize, &Root, &Allow, &errorPage,
-		&uploadPath, &cgi, &autoindex,
+		&uploadPath, &cgi, &autoindex, &indexfiles,
 	};
 	(void)(*fc[index])(conf, fill);
+}
+
+void	fillTheLoc( Server &fill, Location &loc ) {
+	(!fill.root.empty()) && (loc.root = fill.root, 0);
+	(!fill.up_path.empty()) && (loc.up_path = fill.up_path, 0);
+	// (!fill.allow.empty()) && (loc.allow.Get = fill.allow.Get, loc.allow.Post = fill.allow.Post, loc.allow.Delete = fill.allow.Delete, 0);
+	// (!fill.body_size.first != -1) && (loc.body_size = fill.body_size, 0); // fix this
 }
 
 void	location( deque_ &conf, Server &fill ) { // location needs to be full with the same elements as  server | ; at the end | {} | multiple servers | comments
@@ -68,6 +77,7 @@ void	location( deque_ &conf, Server &fill ) { // location needs to be full with 
 	conf.pop_front();
 	(conf[0] != "{") && (throw std::runtime_error("Error: Bad Syntax Location"), 0);
 	conf.pop_front();
+	fillTheLoc( fill, loc );
 	std::string		directives[] = {"max_body_size",
 		"root", "allow",  "error_page",
 		"upload_path", "cgi", "autoindex", "index"};
@@ -105,12 +115,7 @@ Server	parsing_conf( std::string data ) {
 	std::string		directives[] = {"max_body_size",
 		"listen", "root", "allow",  "error_page",
 		"upload_path", "server_name", "location", "cgi", "autoindex", "index"};
-	// char *p = std::strtok((char *)data.c_str(), "\n");
-	// while (p != NULL) {
-		// std::cout << "->>" << p <<std::endl;
-		splitData( conf, data );
-	// 	p = std::strtok(NULL, "\n");
-	// }
+	splitData( conf, data );
 	for (size_t in = 0; in < conf.size(); in++) {
 		if (conf[in + 1] == ";") {
 			conf[in] += conf[in + 1];
@@ -151,7 +156,12 @@ void	printfVec( vect_ conf ) {
 			std::cout << "\tlocation " << conf[j].location[i].prefix << " {" << std::endl;
 			std::cout << "\t\tautoindex " << conf[j].location[i].autoindex << std::endl;
 			std::cout << "\t\tupload_path " << conf[j].location[i].up_path << std::endl;
-			std::cout << "\t\tcgi" << " " << conf[j].location[i].cgi.first << " " << conf[0].location[i].cgi.second << std::endl;
+			std::cout << "\t\troot" << " " << conf[j].location[i].root << std::endl;
+			std::cout << "\t\tallow" << " " << conf[j].location[i].allow.Get << " " << conf[j].location[i].allow.Post << " " << conf[j].location[i].allow.Delete << std::endl;
+			std::cout << "\t\tindex ";
+			for (size_t x = 0; x < conf[j].location[i].index.size(); x++)
+				std::cout << conf[j].location[i].index[x] << " ";
+			std::cout << std::endl;
 			std::cout << "\t}\n";
 		}
 		std::cout << "}\n";
@@ -159,48 +169,63 @@ void	printfVec( vect_ conf ) {
 }
 
 int		countservers( std::string path ) { // error
-	int				servers = 0;
+	size_t			pos;
 	std::string		var;
 	std::fstream	file(path);
+	int				servers = 0;
 	while (std::getline( file, var )) {
-		std::strtok((char *)var.c_str(), " \t");
-		std::cout << var << std::endl;
-		size_t pos = var.find("server{");
+		std::strtok((char *)var.c_str(), " \t\n");
+		if ((pos = var.find("server_name")) != std::string::npos)
+			continue ;
+		size_t pos = var.find("server\0{");
 		if (pos == std::string::npos)
 			continue ;
-		var.erase(0, pos + 8);
 		servers++;
 	}
 	return servers;
 }
 
-vect_	LooponServers( vect_ &config, std::string path ) {
+void	LooponServers( vect_ &conf, std::string path ) {
 	std::string		var;
 	std::string		data;
 	std::fstream	file(path);
+	// vect_ conf = Config::getConfig();
 	int count = countservers( path );
-	// std::cout << count << std::endl;
-	// exit(0);
 	if (!file.is_open())
 		throw std::runtime_error("Error: Couldnt open the file");
 	while (std::getline(file, var))
 		data += var + "\n";
 	for (int i = 0; !data.empty() && i < count; i++) {
-		config.push_back(parsing_conf(data));
-		std::cout << "->>" << data << std::endl;
-		size_t brace = data.find("}");
-		if (brace != std::string::npos && data[brace + 2] == '}')
-			data.erase(0, brace + 4);
+		conf.push_back(parsing_conf(data));
+		size_t brace = data.find("}\n}");
+		if (brace != std::string::npos) {
+			data.erase(0, brace + 3);
+		}
 	}
-	return config;
 }
+
+// Server Config::getservconf( std::string server_name, std::string host )
+// {
+// 	std::pair<std::string , std::string> listen = std::make_pair(host.substr(0, host.find(":")), host.substr(host.find(":") + 1));
+// 	std::pair<std::string , std::string> dummy = std::make_pair("0.0.0.0", "8090");
+// 	Server ret;
+// 	for(size_t i = 0; i < server.size(); i++)
+// 	{
+// 		if(server[i].listen.first == listen.first && server[i].listen.second == listen.second && (server_name == server[i].server_name || server_name.empty()))
+// 		{
+// 			ret = server[i];
+// 			break;
+// 		}
+// 	}
+// 	return ret;
+// }
 
 int main(int ac, char **av) {
 	try {
 		(void)ac;
-		std::vector < Server > config;
-		LooponServers( config, av[1] );
-		// printfVec(config);
+		vect_	dek;
+		LooponServers( dek, av[1] );
+		printfVec(dek);
 		// std::cout << config[0].location[7].cgi.first << std::endl;
 		// std::cout << config[0].location[7].autoindex << std::endl;
 		// std::cout << config[0].location[7].prefix << std::endl;
