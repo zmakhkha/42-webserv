@@ -105,9 +105,10 @@ void MServer::acceptClient(int index) {
 
 void MServer::handleClient(int index) {
   std::cout << ORANGE << "handling client with [index] " << index << " [fd] " << fds[index].fd << RESET << std::endl;
-  char buffer[1024];
+  char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+  //write(1, buffer, re);
   if(re == 0)
   {
   std::cout << ORANGE << "client with [index] " << index << " [fd] " << fds[index].fd << " Hanged !! "<< RESET << std::endl;
@@ -120,8 +121,9 @@ void MServer::handleClient(int index) {
     return;
     // exit(EXIT_FAILURE);
   }
+  std::cout << "[handleClient]" << std::endl;
   reqsMap[index].feedMe(st_(buffer));
-  fds[index].events = POLLOUT;
+    fds[index].events = POLLOUT;
 }
 
 void MServer::routin() {
@@ -156,14 +158,16 @@ void MServer::routin() {
 }
 
 void MServer::sendReesp(int index) {
+
   if (!gotResp[index])
     respMap[index].RetResponse(reqsMap[index]);
+  
   gotResp[index] = true;
 
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
 
-    write(1, res.c_str(), strlen(res.c_str()));
+    //write(1, res.c_str(), strlen(res.c_str()));
     send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
     respMap[index].headersent = true;
   }
