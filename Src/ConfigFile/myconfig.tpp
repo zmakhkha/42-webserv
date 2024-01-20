@@ -36,7 +36,7 @@ void	Listen( deque_ &conf, T &fill ) {
 		fill.listen.first = conf[0].substr(0, conf[0].find(";"));
 	else {
 		fill.listen.first = conf[0].substr(0, pos);
-		fill.listen.second = conf[0].substr(pos + 1, conf[0].find(";"));
+		fill.listen.second = conf[0].substr(pos + 1, std::string(&conf[0][pos + 1]).length() - 1);
 	}
 	conf.pop_front();
 }

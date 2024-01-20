@@ -463,6 +463,7 @@ void request::parseChunked(std::string &page) {
 }
 
 void request::feedMe(const st_ &data) {
+  std::cout << "[feedMe]" << std::endl;
   try {
     st_ str = data;
     cgiResult = cgiResStr;
@@ -505,6 +506,7 @@ void request::feedMe(const st_ &data) {
     }
   } catch (int code_) {
     reading = 0;
+
     Parsed = false;
     code = code_;
   }

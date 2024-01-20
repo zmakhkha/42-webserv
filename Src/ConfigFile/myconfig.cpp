@@ -30,12 +30,15 @@ void	validate( Server check ) {
 	(check.root.empty()) && (throw std::runtime_error("Error: root is needed"), 0);
 	(check.allow.empty()) && (throw std::runtime_error("Error: Methods is needed"), 0);
 	(check.up_path.empty()) && (throw std::runtime_error("Error: upPath is needed"), 0);
+	(check.body_size.first == -1) && (throw std::runtime_error("Error: BodySize is needed"), 0);
 }
 
 int	ft_stoi( std::string var ) {
 	int ret;
 	std::stringstream   ss(var);
 	if (!(ss >> ret))
+		throw std::runtime_error("Error: overflow");
+	if (isdigit(ret) != 0)
 		throw std::runtime_error("Error: Not Integer");
 	return ret;
 }

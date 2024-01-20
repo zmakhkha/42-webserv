@@ -35,11 +35,8 @@
 #include <poll.h>
 #include <fstream>
 
-#define GREEN "\u001b[32m"
-#define RESET "\u001b[0m"
-
 #define MAX_CLENTS 1024
-#define PAGE 1024
+#define PAGE 65536
 
 class request;
 class Response;
@@ -54,6 +51,7 @@ class MServer
 		size_t nserv;
 		std::map<int, request> reqsMap;
 		std::map<int, Response> respMap;
+		std::map<int, bool> gotResp;
 
 	public:
 		void handleClient(int clientFd);
@@ -65,6 +63,8 @@ class MServer
 		void sendReesp(int index);
 		int getClientIndex(int fd);
 		int getFreeClientIdx();
+
+		void deleteClient(int index);
 
 		~MServer();
 		MServer();

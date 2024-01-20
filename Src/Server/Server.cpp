@@ -1,7 +1,14 @@
 #include "Server.hpp"
+#include <deque>
+#include <fcntl.h>
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define RED "\u001b[31m"
+#define ORANGE "\u001b[33m"
+#define GREEN "\u001b[32m"
+#define RESET "\u001b[0m"
 
 const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
@@ -28,7 +35,7 @@ void MServer::cerror(const st_ &str) {
 void MServer::initServers() {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
-  memset(fds, 0, sizeof(pollfd));
+  memset(fds, 0, sizeof(fds));
   for (int i = 0; i < nserv; i++) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
@@ -85,7 +92,7 @@ void MServer::acceptClient(int index) {
       return;
     }
   }
-  std::cout << "[Client connected]" << std::endl;
+  std::cout << GREEN << "[Client connected]" << RESET << std::endl;
   int clientIdx = getFreeClientIdx();
   if (clientIdx == -1)
     return;
@@ -93,84 +100,116 @@ void MServer::acceptClient(int index) {
   fds[clientIdx].fd = clientSocket;
   reqsMap[clientIdx] = request();
   respMap[clientIdx] = Response();
+  gotResp[clientIdx] = false;
 }
 
 void MServer::handleClient(int index) {
-  char buffer[1024];
+  std::cout << ORANGE << "handling client with [index] " << index << " [fd] " << fds[index].fd << RESET << std::endl;
+  char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+  //write(1, buffer, re);
+  if(re == 0)
+  {
+  std::cout << ORANGE << "client with [index] " << index << " [fd] " << fds[index].fd << " Hanged !! "<< RESET << std::endl;
+    deleteClient(index);
+    return;
+  }
   if (re == -1) {
     perror("Error reading from client");
+    deleteClient(index);
     return;
     // exit(EXIT_FAILURE);
   }
+  std::cout << "[handleClient]" << std::endl;
   reqsMap[index].feedMe(st_(buffer));
-  fds[index].events = POLLOUT;
-  // std::cout << "Received from client: " << buffer << std::endl;
+    fds[index].events = POLLOUT;
 }
 
 void MServer::routin() {
+  int i;
   while (true) {
     int status = poll(fds, MAX_CLENTS, -1);
     if (status == -1) {
       perror("Error in poll");
-      break;
+      continue;
     }
-    for (int i = 0; i < MAX_CLENTS; i++) {
+    i = -1;
+    while (++i < nserv) {
       if (fds[i].revents & POLLIN) {
-        if (i < nserv)
-          acceptClient(i);
+        acceptClient(i);
+      }
+      if (fds[i].revents & (POLLHUP | POLLERR)) {
+        deleteClient(i);
       }
     }
-    for (int i = nserv; (i < MAX_CLENTS) && (fds[i].fd != -1); i++) {
-
-      if (fds[i].events & POLLIN) {
-        handleClient(i);
-      }
-      if (fds[i].events & POLLOUT) {
-        sendReesp(i);
+    i = nserv - 1;
+    while (++i < MAX_CLENTS) {
+      if (fds[i].fd != -1) {
+        if (fds[i].events & POLLIN) {
+          handleClient(i);
+        }
+        if (fds[i].events & POLLOUT) {
+          sendReesp(i);
+        }
       }
     }
   }
 }
 
 void MServer::sendReesp(int index) {
-  std::cout << "---------> index : " << index << std::endl;
-  respMap[index].RetResponse(reqsMap[index]);
-  st_ res = respMap[index].getRet();
+
+  if (!gotResp[index])
+    respMap[index].RetResponse(reqsMap[index]);
+  
+  gotResp[index] = true;
 
   if (!respMap[index].headersent) {
-     send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
-     write(1, res.c_str(), strlen(res.c_str()));
+    st_ res = respMap[index].getRet();
+
+    //write(1, res.c_str(), strlen(res.c_str()));
+    send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
     respMap[index].headersent = true;
   }
 
   int fd = respMap[index].getFd();
+  if (respMap[index].headersent && fd == -1) {
+    deleteClient(index);
+    return;
+  }
+
   if (fd != -1) {
     char *buff = new char[PAGE];
     respMap[index].sentData = read(fd, buff, PAGE);
-    if (respMap[index].sentData == -1) {
-      delete [] buff;
-      close(fds[index].fd);
-      fds[index].fd = -1;
-      fds[index].events = POLLIN;
-      if (reqsMap.find(index) != reqsMap.end())
-        reqsMap.erase(index);
+    if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
+      delete[] buff;
+      close(fd);
+      deleteClient(index);
     } else {
-      // Only send data if read was successful
+      // write(1, buff, respMap[index].sentData);
       send(fds[index].fd, buff, respMap[index].sentData, 0);
-      delete [] buff;
-      return;
+      delete[] buff;
     }
-  } else {
-    close(fds[index].fd);
-    fds[index].fd = -1;
-    fds[index].events = POLLIN;
-    if (reqsMap.find(index) != reqsMap.end())
-      reqsMap.erase(index);
+    fds[index].events = POLLOUT;
+    return;
   }
+
+  deleteClient(index);
 }
 
+void MServer::deleteClient(int index) {
+  if (reqsMap.find(index) != reqsMap.end())
+    reqsMap.erase(index);
+  if (respMap.find(index) != respMap.end())
+    respMap.erase(index);
+  if (gotResp.find(index) != gotResp.end())
+    gotResp.erase(index);
+  close(fds[index].fd);
+  fds[index].fd = -1;
+  fds[index].events = POLLIN;
+  std::cout << RED << "[Client left !!]" << RESET << std::endl;
+
+}
 
 int MServer::getFreeClientIdx() {
   int i = 0;

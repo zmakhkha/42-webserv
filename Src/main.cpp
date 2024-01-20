@@ -38,9 +38,7 @@ int main(int ac, char **av) {
 
   signal(SIGPIPE, SIG_IGN);
   try {
-  // st_ conf = getConf(ac, av);
     Config::LooponServers(av[1]);
-    // printfVec(Config::getConfig());
     MServer server;
     server.Serving();
   } catch (std::exception &e) {
