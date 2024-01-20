@@ -3,9 +3,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define GREEN "\u001b[32m"
-#define RESET "\u001b[0m"
-
 const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
                                "Content-Length: 15\r\n"
@@ -31,7 +28,7 @@ void MServer::cerror(const st_ &str) {
 void MServer::initServers() {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
-  memset(fds, 0, sizeof(fds));
+  memset(fds, 0, sizeof(pollfd));
   for (int i = 0; i < nserv; i++) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
@@ -88,7 +85,7 @@ void MServer::acceptClient(int index) {
       return;
     }
   }
-  std::cout << GREEN << "[Client connected]" << RESET << std::endl;
+  std::cout << "[Client connected]" << std::endl;
   int clientIdx = getFreeClientIdx();
   if (clientIdx == -1)
     return;

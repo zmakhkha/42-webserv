@@ -17,7 +17,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-void	missingpoint( std::string	parse ) {
+template < typename T >
+void	missingpoint( T	parse ) {
 	size_t bpos = parse.find(";");
 	size_t rpos = parse.rfind(";");
 	if (bpos != rpos)

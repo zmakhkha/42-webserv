@@ -53,6 +53,7 @@ struct Location : public Shared
 {
     Location() {
         autoindex = false;
+        body_size.first = -1;
     }
     std::string prefix;
     bool autoindex;
@@ -73,9 +74,10 @@ class Config
     public:
         static const std::vector<Server> &getConfig();
         static Server getservconf(std::string server_name, std::string host);
-        // static void	LooponServers( std::string path );
+        static void	LooponServers( std::string path );
 };
 Server	parsing_conf(std::string data);
-void	LooponServers( vect_ &conf, std::string path );
+// void	missingpoint( std::string	parse );
+void	printfVec( vect_ conf );
 int     ft_stoi( std::string var );
 #include "myconfig.tpp"

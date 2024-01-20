@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ConfigFile/ConfigFile.hpp"
+#include "../ConfigFile/myconfig.hpp"
 #include "../Response/Response.hpp"
 
 #define BAD_GATEWAY 502

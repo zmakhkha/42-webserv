@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ConfigFile.hpp"
+#include "myconfig.hpp"
 #include <fstream>
 #include <sys/stat.h>
 
@@ -19,9 +19,11 @@ Methods::~Methods() {}
 
 bool Methods::empty() { return ((!Get && !Post && !Delete)); }
 
+std::vector<Server> Config::server;
+
 // void Config::setConfig(std::vector<Server> serv) { server = serv; }
 
-// const std::vector<Server> &Config::getConfig() { return server; }
+const std::vector<Server> &Config::getConfig() { return server; }
 
 void	validate( Server check ) {
 	(check.listen.first.empty() && check.listen.second.empty()) && (throw std::runtime_error("Error: Port is needed"), 0);
@@ -65,8 +67,8 @@ void	parseElementLoc( deque_ &conf, int index, Location &fill ) {
 void	fillTheLoc( Server &fill, Location &loc ) {
 	(!fill.root.empty()) && (loc.root = fill.root, 0);
 	(!fill.up_path.empty()) && (loc.up_path = fill.up_path, 0);
-	// (!fill.allow.empty()) && (loc.allow.Get = fill.allow.Get, loc.allow.Post = fill.allow.Post, loc.allow.Delete = fill.allow.Delete, 0);
-	// (!fill.body_size.first != -1) && (loc.body_size = fill.body_size, 0); // fix this
+	(!fill.allow.empty()) && (loc.allow.Get = fill.allow.Get, loc.allow.Post = fill.allow.Post, loc.allow.Delete = fill.allow.Delete, 0);
+	((int)fill.body_size.first != -1) && (loc.body_size = fill.body_size, 0);
 }
 
 void	location( deque_ &conf, Server &fill ) { // location needs to be full with the same elements as  server | ; at the end | {} | multiple servers | comments
@@ -158,6 +160,7 @@ void	printfVec( vect_ conf ) {
 			std::cout << "\t\tupload_path " << conf[j].location[i].up_path << std::endl;
 			std::cout << "\t\troot" << " " << conf[j].location[i].root << std::endl;
 			std::cout << "\t\tallow" << " " << conf[j].location[i].allow.Get << " " << conf[j].location[i].allow.Post << " " << conf[j].location[i].allow.Delete << std::endl;
+			std::cout << "\t\tmax_body_size " << " " << conf[j].location[i].body_size.first << conf[j].location[i].body_size.second << std::endl;
 			std::cout << "\t\tindex ";
 			for (size_t x = 0; x < conf[j].location[i].index.size(); x++)
 				std::cout << conf[j].location[i].index[x] << " ";
@@ -185,18 +188,17 @@ int		countservers( std::string path ) { // error
 	return servers;
 }
 
-void	LooponServers( vect_ &conf, std::string path ) {
+void	Config::LooponServers( std::string path ) {
 	std::string		var;
 	std::string		data;
 	std::fstream	file(path);
-	// vect_ conf = Config::getConfig();
 	int count = countservers( path );
 	if (!file.is_open())
 		throw std::runtime_error("Error: Couldnt open the file");
 	while (std::getline(file, var))
 		data += var + "\n";
 	for (int i = 0; !data.empty() && i < count; i++) {
-		conf.push_back(parsing_conf(data));
+		Config::server.push_back(parsing_conf(data));
 		size_t brace = data.find("}\n}");
 		if (brace != std::string::npos) {
 			data.erase(0, brace + 3);
@@ -204,33 +206,33 @@ void	LooponServers( vect_ &conf, std::string path ) {
 	}
 }
 
-// Server Config::getservconf( std::string server_name, std::string host )
-// {
-// 	std::pair<std::string , std::string> listen = std::make_pair(host.substr(0, host.find(":")), host.substr(host.find(":") + 1));
-// 	std::pair<std::string , std::string> dummy = std::make_pair("0.0.0.0", "8090");
-// 	Server ret;
-// 	for(size_t i = 0; i < server.size(); i++)
-// 	{
-// 		if(server[i].listen.first == listen.first && server[i].listen.second == listen.second && (server_name == server[i].server_name || server_name.empty()))
-// 		{
-// 			ret = server[i];
-// 			break;
-// 		}
-// 	}
-// 	return ret;
-// }
-
-int main(int ac, char **av) {
-	try {
-		(void)ac;
-		vect_	dek;
-		LooponServers( dek, av[1] );
-		printfVec(dek);
-		// std::cout << config[0].location[7].cgi.first << std::endl;
-		// std::cout << config[0].location[7].autoindex << std::endl;
-		// std::cout << config[0].location[7].prefix << std::endl;
+Server Config::getservconf( std::string server_name, std::string host )
+{
+	std::pair<std::string , std::string> listen = std::make_pair(host.substr(0, host.find(":")), host.substr(host.find(":") + 1));
+	std::pair<std::string , std::string> dummy = std::make_pair("0.0.0.0", "8090");
+	Server ret;
+	for(size_t i = 0; i < server.size(); i++)
+	{
+		if(server[i].listen.first == listen.first && server[i].listen.second == listen.second && (server_name == server[i].server_name || server_name.empty()))
+		{
+			ret = server[i];
+			break;
+		}
 	}
-	catch ( std::exception &e ) {
-		std::cout << e.what() << std::endl;
-	}
+	return ret;
 }
+
+// int main(int ac, char **av) {
+// 	try {
+// 		(void)ac;
+// 		vect_	dek;
+// 		Config::LooponServers( av[1] );
+// 		printfVec(Config::getConfig());
+// 		// std::cout << config[0].location[7].cgi.first << std::endl;
+// 		// std::cout << config[0].location[7].autoindex << std::endl;
+// 		// std::cout << config[0].location[7].prefix << std::endl;
+// 	}
+// 	catch ( std::exception &e ) {
+// 		std::cout << e.what() << std::endl;
+// 	}
+// }

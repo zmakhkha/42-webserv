@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ConfigFile/ConfigFile.hpp"
+#include "../ConfigFile/myconfig.hpp"
 #include "../Response/Response.hpp"
 
 #include <deque>
@@ -34,6 +34,9 @@
 #include <netinet/in.h>
 #include <poll.h>
 #include <fstream>
+
+#define GREEN "\u001b[32m"
+#define RESET "\u001b[0m"
 
 #define MAX_CLENTS 1024
 #define PAGE 1024
