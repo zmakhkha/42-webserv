@@ -463,7 +463,7 @@ void request::parseChunked(std::string &page) {
 }
 
 void request::feedMe(const st_ &data) {
-  std::cout << "[feedMe]" << std::endl;
+  std::cout << "[feedMe] : " << data.size() << std::endl;
   try {
     st_ str = data;
     cgiResult = cgiResStr;

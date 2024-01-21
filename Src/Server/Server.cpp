@@ -67,8 +67,8 @@ void MServer::initServers() {
 
     fds[i].fd = sock;
     fds[i].events = POLLIN;
-    std::cout << "Server listening on port " << ntohs(addrserv.sin_port)
-              << std::endl;
+    // std::cout << "Server listening on port " << ntohs(addrserv.sin_port)
+              // << std::endl;
   }
 }
 
@@ -76,10 +76,10 @@ void MServer::acceptClient(int index) {
   int clientSocket;
   int s = fds[index].fd;
 
-  std::cout << "[server]index :" << index << " FD : " << s << std::endl;
+  // std::cout << "[server]index :" << index << " FD : " << s << std::endl;
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
-  std::cerr << "Listening socket file descriptor: " << fds[index].fd
-            << std::endl;
+  // std::cerr << "Listening socket file descriptor: " << fds[index].fd
+            // << std::endl;
   if (clientSocket == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       return;
@@ -92,7 +92,7 @@ void MServer::acceptClient(int index) {
       return;
     }
   }
-  std::cout << GREEN << "[Client connected]" << RESET << std::endl;
+  // std::cout << GREEN << "[Client connected]" << RESET << std::endl;
   int clientIdx = getFreeClientIdx();
   if (clientIdx == -1)
     return;
@@ -104,14 +104,15 @@ void MServer::acceptClient(int index) {
 }
 
 void MServer::handleClient(int index) {
-  std::cout << ORANGE << "handling client with [index] " << index << " [fd] " << fds[index].fd << RESET << std::endl;
+  // std::cout << ORANGE << "handling client with [index] " << index << " [fd] " << fds[index].fd << RESET << std::endl;
   char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+  std::cout << "server : recv : " << re << std::endl;
   //write(1, buffer, re);
   if(re == 0)
   {
-  std::cout << ORANGE << "client with [index] " << index << " [fd] " << fds[index].fd << " Hanged !! "<< RESET << std::endl;
+  // std::cout << ORANGE << "client with [index] " << index << " [fd] " << fds[index].fd << " Hanged !! "<< RESET << std::endl;
     deleteClient(index);
     return;
   }
@@ -124,8 +125,9 @@ void MServer::handleClient(int index) {
         deleteClient(index);
         return;
     }
-  std::cout << "[handleClient]" << std::endl;
-  reqsMap[index].feedMe(st_(buffer));
+  // std::cout << "[handleClient]" << std::endl;
+  reqsMap[index].feedMe(st_(buffer, buffer + re));
+  if(!reqsMap[index].reading)
     fds[index].events = POLLOUT;
 }
 
@@ -210,7 +212,7 @@ void MServer::deleteClient(int index) {
   close(fds[index].fd);
   fds[index].fd = -1;
   fds[index].events = POLLIN;
-  std::cout << RED << "[Client left !!]" << RESET << std::endl;
+  // std::cout << RED << "[Client left !!]" << RESET << std::endl;
 
 }
 
@@ -221,7 +223,7 @@ int MServer::getFreeClientIdx() {
       break;
   }
   if (i == MAX_CLENTS) {
-    std::cerr << "Unable to add another client !!" << std::endl;
+    // std::cerr << "Unable to add another client !!" << std::endl;
     i = -1;
   }
   return i;
