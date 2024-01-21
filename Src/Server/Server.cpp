@@ -5,10 +5,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define RED "\u001b[31m"
-#define ORANGE "\u001b[33m"
-#define GREEN "\u001b[32m"
-#define RESET "\u001b[0m"
+#define RED ""
+#define ORANGE ""
+#define GREEN ""
+#define RESET ""
 
 const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
@@ -35,7 +35,7 @@ void MServer::cerror(const st_ &str) {
 void MServer::initServers() {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
-  memset(fds, 0, sizeof(fds));
+  memset(fds, 0, sizeof(pollfd));
   for (int i = 0; i < nserv; i++) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
@@ -115,12 +115,15 @@ void MServer::handleClient(int index) {
     deleteClient(index);
     return;
   }
-  if (re == -1) {
-    perror("Error reading from client");
-    deleteClient(index);
-    return;
-    // exit(EXIT_FAILURE);
-  }
+    if (re == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // No data available for reading, ignore and continue
+            return;
+        }
+        perror("Error reading from client");
+        deleteClient(index);
+        return;
+    }
   std::cout << "[handleClient]" << std::endl;
   reqsMap[index].feedMe(st_(buffer));
     fds[index].events = POLLOUT;
