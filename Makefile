@@ -1,17 +1,17 @@
 NAME		= WebServ
-CC			= c++  -g -fsanitize=address
+CC			= c++  -g 
 FLAGS		= -Wall -Wextra -Werror  -std=c++98 
 OBJDIR 		= .obj
 
 FILES		= 	Src/main \
-				Src/ConfigFile/ConfigFile \
+				Src/ConfigFile/myconfig \
 				Src/Server/Server \
 				Src/Request/Request \
 				Src/Response/Response \
 				Src/Cgi/Cgi \
 
-HEADER		=	Src/ConfigFile/ConfigFile.hpp \
-				Src/ConfigFile/ConfigFile.tpp  \
+HEADER		=	Src/ConfigFile/myconfig.hpp \
+				Src/ConfigFile/myconfig.tpp  \
 				Src/Server/Server.hpp \
 				Src/Request/Request.hpp \
 				Src/Response/Response.hpp \

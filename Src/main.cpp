@@ -1,4 +1,4 @@
-#include "ConfigFile/ConfigFile.hpp"
+#include "ConfigFile/myconfig.hpp"
 #include "Server/Server.hpp"
 #include <cstddef>
 #include <exception>
@@ -38,11 +38,8 @@ int main(int ac, char **av) {
 
   signal(SIGPIPE, SIG_IGN);
   try {
-  st_ conf = getConf(ac, av);
-  Config::setConfig(parseconf(conf));
-  Config a;
-  (void)a;
-  MServer server;
+    Config::LooponServers(getConf(ac, av));
+    MServer server;
     server.Serving();
   } catch (std::exception &e) {
     std::cout << e.what() << std::endl;

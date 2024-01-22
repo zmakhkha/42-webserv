@@ -44,7 +44,8 @@ void MServer::initServers() {
     bzero(&addrserv, sizeof(addrserv));
     addrserv.sin_family = AF_INET;
     addrserv.sin_addr.s_addr = htonl(INADDR_ANY);
-    addrserv.sin_port = htons(stoi(servers[i].listen.second));
+    addrserv.sin_port = htons(atoi(servers[i].listen.second.c_str()));
+    std::cout << "Server Listening on port : " << servers[i].listen.second << std::endl;
 
     int optval = 1;
 
@@ -111,6 +112,7 @@ void MServer::handleClient(int index) {
             return;
         }
         // std::cout << fds[index].fd << std::endl;
+        std::cout << fds[index].fd << std::endl;
         perror("Error reading from client");
         deleteClient(index);
         return;
@@ -146,6 +148,9 @@ void MServer::routin() {
         if (fds[i].events & POLLOUT) {
           sendReesp(i);
         }
+        // if (fds[i].events & POLLHUP) {
+        //   deleteClient(i);
+        // }
       }
     }
   }
@@ -160,10 +165,11 @@ void MServer::sendReesp(int index) {
 
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
-
+    std::cout << res << std::endl;
     send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
     respMap[index].headersent = true;
   }
+
 
   int fd = respMap[index].getFd();
   if (respMap[index].headersent && fd == -1) {
@@ -175,15 +181,14 @@ void MServer::sendReesp(int index) {
     char *buff = new char[PAGE];
     respMap[index].sentData = read(fd, buff, PAGE);
     if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
-      delete[] buff;
-      close(fd);
-      deleteClient(index);
+      std::cout << "rah dkhal hna" << std::endl;
+      return (delete[] buff, close(fd), deleteClient(index), (void )0);
     } else {
       send(fds[index].fd, buff, respMap[index].sentData, 0);
+      std::cout << "-->" << respMap[index].sentData << std::endl;
       delete[] buff;
     }
-    fds[index].events = POLLOUT;
-    return;
+    return;(fds[index].events = POLLOUT, (void)0);
   }
 
   deleteClient(index);
@@ -199,9 +204,8 @@ void MServer::deleteClient(int index) {
 
     if (fds[index].fd != -1) {
         close(fds[index].fd);
-        fds[index].fd = -1;
     }
-
+        fds[index].fd = -1;
     fds[index].events = POLLIN;
 }
 

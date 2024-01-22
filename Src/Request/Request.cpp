@@ -596,7 +596,7 @@ void request::feedMe(const st_ &data)
   catch (int code_)
   {
     reading = 0;
-
+    upDone = true;
     Parsed = false;
     code = code_;
   }

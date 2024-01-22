@@ -11,7 +11,7 @@
 #define BOLD_WHITE "\033[1;37m"
 #define DEF "\033[0m"
 
-#include "../ConfigFile/ConfigFile.hpp"
+#include "../ConfigFile/myconfig.hpp"
 #include "../Cgi/Cgi.hpp"
 
 #include <iostream>

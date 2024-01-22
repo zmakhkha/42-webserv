@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ConfigFile/ConfigFile.hpp"
+#include "../ConfigFile/myconfig.hpp"
 #include "../Response/Response.hpp"
 
 #include <deque>
@@ -36,7 +36,7 @@
 #include <fstream>
 
 #define MAX_CLENTS 1024
-#define PAGE 65536
+#define PAGE 65535
 
 class request;
 class Response;
