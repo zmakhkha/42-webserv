@@ -64,7 +64,10 @@ class request {
 		int chunklen;
 		int tmpBodyFd;
 		bool singlePage;
+		size_t readBits;
+
 	public :
+		bool upDone;
 		Server Serv;
         bool cgi;
 		int	locate;
