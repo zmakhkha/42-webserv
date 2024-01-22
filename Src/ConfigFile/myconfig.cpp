@@ -30,7 +30,6 @@ void	validate( Server check ) {
 	(check.root.empty()) && (throw std::runtime_error("Error: root is needed"), 0);
 	(check.allow.empty()) && (throw std::runtime_error("Error: Methods is needed"), 0);
 	(check.up_path.empty()) && (throw std::runtime_error("Error: upPath is needed"), 0);
-	(check.body_size.first == -1) && (throw std::runtime_error("Error: BodySize is needed"), 0);
 }
 
 int	ft_stoi( std::string var ) {
@@ -72,7 +71,7 @@ void	fillTheLoc( Server &fill, Location &loc ) {
 	(!fill.root.empty()) && (loc.root = fill.root, 0);
 	(!fill.up_path.empty()) && (loc.up_path = fill.up_path, 0);
 	(!fill.allow.empty()) && (loc.allow.Get = fill.allow.Get, loc.allow.Post = fill.allow.Post, loc.allow.Delete = fill.allow.Delete, 0);
-	((int)fill.body_size.first != -1) && (loc.body_size = fill.body_size, 0);
+	loc.body_size = fill.body_size;
 }
 
 void	location( deque_ &conf, Server &fill ) { // location needs to be full with the same elements as  server | ; at the end | {} | multiple servers | comments
