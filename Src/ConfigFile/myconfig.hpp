@@ -53,7 +53,6 @@ struct Location : public Shared
 {
     Location() {
         autoindex = false;
-        body_size.first = -1;
     }
     std::string prefix;
     bool autoindex;
@@ -62,9 +61,14 @@ struct Location : public Shared
 
 struct Server : public Shared
 {
+    Server() {
+        body_size.first = 2;
+        body_size.second = 'G';
+    };
     std::vector<Location> location;
     std::pair<std::string, std::string> listen;
     std::string server_name;
+    ~Server() {};
 };
 
 class Config

@@ -45,9 +45,9 @@ int	ft_stoi( std::string var ) {
 }
 
 void	splitData( std::deque < std::string > &conf, std::string data ) {
-	size_t pos = data.find("#");
-	if (pos != std::string::npos) {
-		std::string	trimmed = &data[pos];
+	size_t pos;
+	while ((pos = data.find("#")) != std::string::npos) {
+		std::string	trimmed(&data[pos]);
 		data = data.erase(pos, trimmed.find("\n"));
 	}
 	char *p = std::strtok((char *)data.c_str(), " \n\t;");

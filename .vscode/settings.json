@@ -5,6 +5,7 @@
         "iosfwd": "cpp",
         "filesystem": "cpp",
         "stdexcept": "cpp",
-        "*.tpp": "cpp"
+        "*.tpp": "cpp",
+        "string": "cpp"
     }
 }
