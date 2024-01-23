@@ -10,21 +10,18 @@
 #define GREEN ""
 #define RESET ""
 
-const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "Content-Length: 15\r\n"
-                               "\r\n"
-                               "Hello, Client!\n";
+MServer::~MServer() {
+    delete[] fds;
+}
 
-MServer::~MServer() { delete[] fds; }
 MServer::MServer() : servers(Config::getConfig()) {
-  nserv = Config::getConfig().size();
-  fds = new pollfd[MAX_CLENTS];
-  for (int i = 0; i < MAX_CLENTS; i++) {
-    fds[i].fd = -1;
-    fds[i].events = POLLIN;
-  }
-  clientIndex = nserv;
+    nserv = Config::getConfig().size();
+    fds = new pollfd[MAX_CLENTS];
+    for (int i = 0; i < MAX_CLENTS; i++) {
+        fds[i].fd = -1;
+        fds[i].events = POLLIN;
+    }
+    clientIndex = nserv;
 }
 
 void MServer::cerror(const st_ &str) {
@@ -72,36 +69,33 @@ void MServer::initServers() {
 }
 
 void MServer::acceptClient(int index) {
-  int clientSocket;
-  int s = fds[index].fd;
+    int clientSocket;
+    int s = fds[index].fd;
 
-  clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
-  if (clientSocket == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      return;
-    } else {
-      return;
+    clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
+    if (clientSocket == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return;
+        } else {
+            return;
+        }
     }
-  }
-  int clientIdx = getFreeClientIdx();
-  if (clientIdx == -1)
-    return;
-  fds[clientIdx].events = POLLIN;
-  fds[clientIdx].fd = clientSocket;
-  reqsMap[clientIdx] = request();
-  respMap[clientIdx] = Response();
-  gotResp[clientIdx] = false;
+    int clientIdx = getFreeClientIdx();
+    if (clientIdx == -1)
+        return;
+    fds[clientIdx].events = POLLIN;
+    fds[clientIdx].fd = clientSocket;
+    clients[clientIdx] = Client();
 }
 
 void MServer::handleClient(int index) {
-  char buffer[PAGE];
-  memset(buffer, 0, sizeof(buffer));
-  ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
-  if(re == 0)
-  {
-    deleteClient(index);
-    return;
-  }
+    char buffer[PAGE];
+    memset(buffer, 0, sizeof(buffer));
+    ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+    if (re == 0) {
+        deleteClient(index);
+        return;
+    }
     if (re == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return;
@@ -109,9 +103,9 @@ void MServer::handleClient(int index) {
         deleteClient(index);
         return;
     }
-  reqsMap[index].feedMe(st_(buffer, buffer + re));
-  if(!reqsMap[index].reading && reqsMap[index].upDone)
-    fds[index].events = POLLOUT;
+    clients[index].req.feedMe(st_(buffer, buffer + re));
+    if (!clients[index].req.reading && clients[index].req.upDone)
+        fds[index].events = POLLOUT;
 }
 
 void MServer::routin() {
@@ -149,55 +143,58 @@ void MServer::routin() {
 }
 
 void MServer::sendReesp(int index) {
-
-  if (!gotResp[index])
-    respMap[index].RetResponse(reqsMap[index]);
-  
-  gotResp[index] = true;
-
-  if (!respMap[index].headersent) {
-    st_ res = respMap[index].getRet();
-    if(send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
-      deleteClient(index);
-    respMap[index].headersent = true;
-  }
-
-
-  int fd = respMap[index].getFd();
-  if (respMap[index].headersent && fd == -1) {
-    deleteClient(index);
-    return;
-  }
-
-  if (fd != -1) {
-    size_t MAXSEND = 10000;
-    char *buff = new char[MAXSEND];
-    respMap[index].sentData = read(fd, buff, MAXSEND);
-    if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
-      return (delete[] buff, close(fd), deleteClient(index), (void )0);
-    } else {
-      if(send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
-        deleteClient(index);
-      delete[] buff;
+    if (!clients[index].gotResponse) {
+        clients[index].resp.RetResponse(clients[index].req);
+        clients[index].gotResponse = true;
     }
-    return(fds[index].events = POLLOUT, (void)0);
-  }
 
-  deleteClient(index);
+    st_ res = clients[index].resp.getRet();
+
+    if (!clients[index].resp.headersent) {
+        if (send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1) {
+            deleteClient(index);
+            return;
+        }
+        clients[index].resp.headersent = true;
+    }
+
+    int fd = clients[index].resp.getFd();
+    if (clients[index].resp.headersent && fd == -1) {
+        deleteClient(index);
+        return;
+    }
+
+    if (fd != -1) {
+        size_t MAXSEND = 10000;
+        char *buff = new char[MAXSEND];
+        clients[index].resp.sentData = read(fd, buff, MAXSEND);
+        if (clients[index].resp.sentData == -1 || clients[index].resp.sentData == 0) {
+            delete[] buff;
+            close(fd);
+            deleteClient(index);
+            return;
+        } else {
+            if (send(fds[index].fd, buff, clients[index].resp.sentData, 0) == -1) {
+                deleteClient(index);
+            }
+            delete[] buff;
+        }
+        fds[index].events = POLLOUT;
+        return;
+    }
+
+    deleteClient(index);
 }
 
+
 void MServer::deleteClient(int index) {
-    if (reqsMap.find(index) != reqsMap.end())
-        reqsMap.erase(index);
-    if (respMap.find(index) != respMap.end())
-        respMap.erase(index);
-    if (gotResp.find(index) != gotResp.end())
-        gotResp.erase(index);
+    if (clients.find(index) != clients.end())
+        clients.erase(index);
 
     if (fds[index].fd != -1) {
         close(fds[index].fd);
     }
-        fds[index].fd = -1;
+    fds[index].fd = -1;
     fds[index].events = POLLIN;
 }
 

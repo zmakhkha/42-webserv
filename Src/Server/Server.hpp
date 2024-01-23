@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ConfigFile/myconfig.hpp"
-#include "../Response/Response.hpp"
+#include "../Client/Client.hpp"
 
 #include <deque>
 #include <arpa/inet.h>
@@ -41,31 +41,31 @@
 class request;
 class Response;
 
-class MServer
-{
-	private:
-		const std::vector<Server> servers;
-		struct pollfd *fds;
-		sockaddr_in addrserv;
-		int clientIndex;
-		size_t nserv;
-		std::map<int, request> reqsMap;
-		std::map<int, Response> respMap;
-		std::map<int, bool> gotResp;
 
-	public:
-		void handleClient(int clientFd);
-		void acceptClient(int index);
-		void cerror(const st_ &str);
-		void initServers();
-		void Serving();
-		void routin();
-		void sendReesp(int index);
-		int getClientIndex(int fd);
-		int getFreeClientIdx();
 
-		void deleteClient(int index);
+// Modify the MServer class definition
 
-		~MServer();
-		MServer();
+class MServer {
+private:
+    const std::vector<Server> servers;
+    struct pollfd *fds;
+    sockaddr_in addrserv;
+    int clientIndex;
+    size_t nserv;
+    std::map<int, Client> clients;
+
+public:
+    void handleClient(int clientFd);
+    void acceptClient(int index);
+    void cerror(const st_ &str);
+    void initServers();
+    void Serving();
+    void routin();
+    void sendReesp(int index);
+    int getClientIndex(int fd);
+    int getFreeClientIdx();
+    void deleteClient(int index);
+
+    ~MServer();
+    MServer();
 };
