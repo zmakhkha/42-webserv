@@ -62,7 +62,7 @@ void	parseElementLoc( deque_ &conf, int index, Location &fill ) {
 		throw std::runtime_error("Error: empty Directive");
 	void (*fc[])(deque_ &conf, Location &fill) = {
 		&maxbodySize, &Root, &Allow, &errorPage,
-		&uploadPath, &cgi, &autoindex, &indexfiles,
+		&uploadPath, &cgi, &autoindex, &indexfiles, &redirect,
 	};
 	(void)(*fc[index])(conf, fill);
 }
@@ -71,6 +71,7 @@ void	fillTheLoc( Server &fill, Location &loc ) {
 	(!fill.root.empty()) && (loc.root = fill.root, 0);
 	(!fill.up_path.empty()) && (loc.up_path = fill.up_path, 0);
 	(!fill.allow.empty()) && (loc.allow.Get = fill.allow.Get, loc.allow.Post = fill.allow.Post, loc.allow.Delete = fill.allow.Delete, 0);
+	(!fill.redirect.second.empty()) && (loc.redirect = fill.redirect, 0);
 	loc.body_size = fill.body_size;
 }
 
@@ -85,14 +86,14 @@ void	location( deque_ &conf, Server &fill ) { // location needs to be full with 
 	fillTheLoc( fill, loc );
 	std::string		directives[] = {"max_body_size",
 		"root", "allow",  "error_page",
-		"upload_path", "cgi", "autoindex", "index"};
+		"upload_path", "cgi", "autoindex", "index", "redirect"};
 	while (conf.size() > 0 && conf[0] != "}") {
 		for (i = 0; i < (int)directives->size(); i++) {
 			if (directives[i] == conf[0]) {
 				parseElementLoc( conf, i, loc );
 				break ;
 			}
-			if (i == 7)
+			if (i == 8)
 				throw std::runtime_error("Error: no such Directive as " + conf[0]);
 		}
 	}
@@ -108,7 +109,7 @@ void	parseElement( deque_ &conf, int index, Server &fill ) {
 		throw std::runtime_error("Error: empty Directive");
 	void (*f[])(deque_ &conf, Server &fill) = {
 		&maxbodySize, &Listen, &Root, &Allow, &errorPage,
-		&uploadPath, &serverName, &location,
+		&uploadPath, &serverName, &location, &redirect,
 	};
 	(void)(*f[index])(conf, fill);
 }
@@ -119,7 +120,7 @@ Server	parsing_conf( std::string data ) {
 	deque_			conf; // get the vector and fill it somehow
 	std::string		directives[] = {"max_body_size",
 		"listen", "root", "allow",  "error_page",
-		"upload_path", "server_name", "location", "cgi", "autoindex", "index"};
+		"upload_path", "server_name", "location", "redirect"};
 	splitData( conf, data );
 	for (size_t in = 0; in < conf.size(); in++) {
 		if (conf[in + 1] == ";") {
@@ -141,7 +142,7 @@ Server	parsing_conf( std::string data ) {
 				parseElement( conf, i, serv );
 				break ;
 			}
-			if (i == 10)
+			if (i == 8)
 				throw std::runtime_error("Error: no such Directive as " + conf[0]);
 		}
 	}
@@ -159,6 +160,7 @@ void	printfVec( vect_ conf ) {
 		std::cout << "\tallow " << conf[j].allow.Get << " " << conf[j].allow.Post << " " << conf[j].allow.Delete << std::endl;
 		std::cout << "\terror_page " << conf[j].error_page[404] << std::endl;
 		std::cout << "\tmax_body_size " << conf[j].body_size.first << conf[j].body_size.second << std::endl;
+		std::cout << "\t\tredirect " << " " << conf[j].redirect.first <<  " " << conf[j].redirect.second << std::endl;
 		std::cout << "\tupload_path " << conf[j].up_path << std::endl;
 		std::cout << "\tservername " << conf[j].server_name << std::endl;
 		for (int i = 0; i < (int)conf[j].location.size(); i++) {
@@ -168,6 +170,7 @@ void	printfVec( vect_ conf ) {
 			std::cout << "\t\troot" << " " << conf[j].location[i].root << std::endl;
 			std::cout << "\t\tallow" << " " << conf[j].location[i].allow.Get << " " << conf[j].location[i].allow.Post << " " << conf[j].location[i].allow.Delete << std::endl;
 			std::cout << "\t\tmax_body_size " << " " << conf[j].location[i].body_size.first << conf[j].location[i].body_size.second << std::endl;
+			std::cout << "\t\tredirect " << " " << conf[j].location[i].redirect.first <<  " " << conf[j].location[i].redirect.second << std::endl;
 			std::cout << "\t\tindex ";
 			for (size_t x = 0; x < conf[j].location[i].index.size(); x++)
 				std::cout << conf[j].location[i].index[x] << " ";

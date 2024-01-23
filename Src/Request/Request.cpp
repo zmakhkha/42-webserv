@@ -42,8 +42,7 @@ void request::isItinConfigFile(st_ URI)
   std::sort(prefix.begin(), prefix.end());
   for (int idx = prefix.size() - 1; idx >= 0; idx--)
   {
-    if (prefix[idx] == URI.substr(0, prefix[idx].length()))
-    {
+    if (prefix[idx] + "/" == URI.substr(0, prefix[idx].length() + 1)) {
       for (int i = 0; i < (int)locations.size(); i++)
         if (locations[i].prefix == prefix[idx])
           locate = i;
@@ -552,6 +551,7 @@ void request::feedMe(const st_ &data)
     isItinConfigFile(UniformRI);
     if (!Serv.location[locate].allow.Post && getMethod_() == "POST")
       throw 405;
+    std::cout << Serv.location[locate].prefix << " " << getMethod_() << std::endl;
     upPath = Serv.location[locate].up_path;
     if ((getURI().find(".py") != std::string::npos ||
          getURI().find(".php") != std::string::npos) &&
@@ -571,6 +571,7 @@ void request::feedMe(const st_ &data)
         cgiReady = 1;
       if (cgiReady)
         handleCgi(data);
+      upDone = true;
     }
     else
     {

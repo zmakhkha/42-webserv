@@ -111,7 +111,7 @@ void MServer::handleClient(int index) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return;
         }
-        // std::cout << fds[index].fd << std::endl;
+        std::cout << fds[index].fd << std::endl;
         std::cout << fds[index].fd << std::endl;
         perror("Error reading from client");
         deleteClient(index);
@@ -178,8 +178,9 @@ void MServer::sendReesp(int index) {
   }
 
   if (fd != -1) {
-    char *buff = new char[PAGE];
-    respMap[index].sentData = read(fd, buff, PAGE);
+    size_t MAXSEND = 10000;
+    char *buff = new char[MAXSEND];
+    respMap[index].sentData = read(fd, buff, MAXSEND);
     if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
       std::cout << "rah dkhal hna" << std::endl;
       return (delete[] buff, close(fd), deleteClient(index), (void )0);

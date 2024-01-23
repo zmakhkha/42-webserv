@@ -144,7 +144,7 @@ void Response::isItinConfigFile(st_ URI) {
   }
   std::sort(prefix.begin(), prefix.end());
   for (int idx = prefix.size() - 1; idx >= 0; idx--) {
-    if (prefix[idx] == URI.substr(0, prefix[idx].length())) {
+    if (prefix[idx] + "/" == URI.substr(0, prefix[idx].length() + 1)) {
       for (int i = 0; i < (int)locations.size(); i++)
         if (locations[i].prefix == prefix[idx])
           location = i;
@@ -291,6 +291,8 @@ void    Response::deleteFile( void ) {
 }
 void	Response::openDir( st_ path, request &req ) {
 	inf.path = path;
+	if (inf.path[inf.path.length() - 1] != '/')
+		inf.path += '/';
 	inf.dir = opendir(inf.path.c_str());
 	if (inf.dir)
 		deleteDir( req );
@@ -305,8 +307,10 @@ void    Response::deleteDir( request &req ) {
             || (inf.directory->d_name[0] == '.' && inf.directory->d_name[1] == '.' && !inf.directory->d_name[2]))
             continue;
         file_or_dir = inf.path + inf.directory->d_name;
-        if (stat(file_or_dir.c_str(), &inf.stru_t) == -1)
+        if (stat(file_or_dir.c_str(), &inf.stru_t) == -1) {
+			closedir(inf.dir);
             throw 404;
+		}
         if (S_ISREG(inf.stru_t.st_mode) && (access(file_or_dir.c_str(), W_OK) == 0))
             inf.files.push_back(file_or_dir);
         else if (S_ISDIR(inf.stru_t.st_mode))
@@ -342,6 +346,7 @@ void	Response::DeleteContent( request &req, st_ path ) {
 void	Response::DELResource( request &req ) {
 	st_	body;
 	st_ root = srv.location[location].root;
+	std::cout << root << std::endl;
 	if (srv.location[location].prefix == "/")
 		root += "/";
 	st_	path = root + req.getURI().substr(srv.location[location].prefix.length());

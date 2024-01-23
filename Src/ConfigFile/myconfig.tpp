@@ -174,3 +174,17 @@ void	indexfiles( deque_ &conf, T &fill ) {
 	fill.index.push_back(conf[0]);
 	conf.pop_front();
 }
+
+template < typename T >
+void    redirect( deque_ &conf, T &fill ) {
+	fill.redirect.first = ft_stoi(conf[0]);
+	conf.pop_front();
+	if (fill.redirect.first < 200 || fill.redirect.first > 504)
+		throw std::runtime_error("Error: code not found");
+    if (conf[0][conf[0].length() - 1] == ';')
+        missingpoint( conf[0] );
+    else
+        throw std::runtime_error("Error: Missing ; at the end");
+	fill.redirect.second = conf[0].substr(0, conf[0].length() - 1);
+    conf.pop_front();
+}
