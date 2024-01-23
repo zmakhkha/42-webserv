@@ -34,7 +34,7 @@ void	validate( Server check ) {
 
 int	ft_stoi( std::string var ) {
 	int ret;
-	for (int i = 0; i < var.length(); i++)
+	for (int i = 0; i < (int)var.length(); i++)
 		if (isdigit(var[i]) == 0)
 			throw std::runtime_error("Error: Not Integer");
 	std::stringstream   ss(var);

@@ -551,7 +551,6 @@ void request::feedMe(const st_ &data)
     isItinConfigFile(UniformRI);
     if (!Serv.location[locate].allow.Post && getMethod_() == "POST")
       throw 405;
-    std::cout << Serv.location[locate].prefix << " " << getMethod_() << std::endl;
     upPath = Serv.location[locate].up_path;
     if ((getURI().find(".py") != std::string::npos ||
          getURI().find(".php") != std::string::npos) &&

@@ -36,7 +36,7 @@ void MServer::initServers() {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
   memset(fds, 0, sizeof(pollfd));
-  for (int i = 0; i < nserv; i++) {
+  for (int i = 0; i < (int)nserv; i++) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
       cerror("Server: creating socket failed");
@@ -80,11 +80,6 @@ void MServer::acceptClient(int index) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       return;
     } else {
-      freopen("out", "w", stdout);
-      perror("Error accepting connection");
-      std::cerr << "Error accepting connection: " << strerror(errno)
-                << std::endl;
-      std::cerr << "Index: " << index << ", fd: " << fds[index].fd << std::endl;
       return;
     }
   }
@@ -111,9 +106,6 @@ void MServer::handleClient(int index) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return;
         }
-        std::cout << fds[index].fd << std::endl;
-        std::cout << fds[index].fd << std::endl;
-        perror("Error reading from client");
         deleteClient(index);
         return;
     }
@@ -131,7 +123,7 @@ void MServer::routin() {
       continue;
     }
     i = -1;
-    while (++i < nserv) {
+    while (++i < (int)nserv) {
       if (fds[i].revents & POLLIN) {
         acceptClient(i);
       }
@@ -165,8 +157,8 @@ void MServer::sendReesp(int index) {
 
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
-    std::cout << res << std::endl;
-    send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
+    if(send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
+      deleteClient(index);
     respMap[index].headersent = true;
   }
 
@@ -182,14 +174,13 @@ void MServer::sendReesp(int index) {
     char *buff = new char[MAXSEND];
     respMap[index].sentData = read(fd, buff, MAXSEND);
     if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
-      std::cout << "rah dkhal hna" << std::endl;
       return (delete[] buff, close(fd), deleteClient(index), (void )0);
     } else {
-      send(fds[index].fd, buff, respMap[index].sentData, 0);
-      std::cout << "-->" << respMap[index].sentData << std::endl;
+      if(send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
+        deleteClient(index);
       delete[] buff;
     }
-    return;(fds[index].events = POLLOUT, (void)0);
+    return(fds[index].events = POLLOUT, (void)0);
   }
 
   deleteClient(index);

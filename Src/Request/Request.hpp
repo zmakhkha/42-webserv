@@ -64,7 +64,7 @@ class request {
 		int chunklen;
 		int tmpBodyFd;
 		bool singlePage;
-		size_t readBits;
+		long readBits;
 
 	public :
 		bool upDone;

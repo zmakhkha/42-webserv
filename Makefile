@@ -24,12 +24,12 @@ OBJ			= $(addprefix $(OBJDIR)/, $(FILES:=.o))
 all: $(NAME)
 
 $(NAME): $(OBJ) $(HEADER)
-	@$(CC)  $(OBJ)   -o $(NAME) 
+	@$(CC) $(FLAGS) $(OBJ)   -o $(NAME) 
 	@echo "🛰️  Server Ready!"
 
 $(OBJDIR)/%.o: %.cpp $(HEADER)  Makefile
 	@mkdir -p $(dir $@)
-	@$(CC)  -g -c $< -o $@ 
+	@$(CC) $(FLAGS) -g -c $< -o $@ 
 
 clean: 
 	@rm -rf $(OBJDIR) $(OBJ)

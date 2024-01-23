@@ -143,8 +143,11 @@ void Cgi::execute() {
       perror("freopen : ");
     }
     alarm(6);
-    execve(argv[0], argv, envp);
-    perror("execve");
+    if (execve(argv[0], argv, envp) == -1)
+    {
+      perror("execve");
+      throw 502;
+    }
   } else if (pid > 0) {
     int stat;
     waitpid(pid, &stat, 0);
