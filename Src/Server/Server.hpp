@@ -35,7 +35,7 @@
 #include <poll.h>
 #include <fstream>
 
-#define MAX_CLENTS 1024
+#define MAX_CLENTS SOMAXCONN
 #define PAGE 65535
 
 class request;
