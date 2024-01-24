@@ -165,7 +165,7 @@ void MServer::sendReesp(int index) {
     }
 
     if (fd != -1) {
-        size_t MAXSEND = 10000;
+        size_t MAXSEND = 1024;
         char *buff = new char[MAXSEND];
         clients[index].resp.sentData = read(fd, buff, MAXSEND);
         if (clients[index].resp.sentData == -1 || clients[index].resp.sentData == 0) {
