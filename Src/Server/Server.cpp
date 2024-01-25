@@ -5,25 +5,22 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define RED ""
-#define ORANGE ""
-#define GREEN ""
-#define RESET ""
+#define RED "\x1b[31m"
+#define GREEN "\x1b[32m"
+#define BLUE "\x1b[34m"
+#define RESET "\x1b[0m"
+
+#define DISC -1
+#define CONN -2
+#define HAND -3
 
 MServer::~MServer()
 {
-  delete[] fds;
 }
 
 MServer::MServer() : servers(Config::getConfig())
 {
   nserv = Config::getConfig().size();
-  fds = new pollfd[MAX_CLENTS];
-  for (int i = 0; i < MAX_CLENTS; i++)
-  {
-    fds[i].fd = -1;
-    fds[i].events = POLLIN;
-  }
   clientIndex = nserv;
 }
 
@@ -37,7 +34,6 @@ void MServer::initServers()
 {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
-  memset(fds, 0, sizeof(pollfd));
   for (int i = 0; i < (int)nserv; i++)
   {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -69,31 +65,42 @@ void MServer::initServers()
     if (fcntl(sock, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
       cerror("Error: Setting socket to nonblocking");
 
-    fds[i].fd = sock;
-    fds[i].events = POLLIN;
+    struct pollfd tmp;
+    tmp.fd = sock;
+    tmp.events = POLLIN | POLLOUT;
+    fds.push_back(tmp);
+    std::cout << GREEN << "Server ADDED" << RESET << std::endl;
+    std::cout << GREEN << "fds.size()=" << fds.size() << RESET << std::endl;
   }
 }
 
 void MServer::acceptClient(int index)
 {
+  std::cout << BLUE << "MServer::acceptClient" << RESET << std::endl;
   int clientSocket;
   int s = fds[index].fd;
 
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
-  if (clientSocket == -1)
-    return (std::cout << "failed to accept client" << std::endl, (void)0);
-  if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
-    return (close(clientSocket), std::cout << "failed to set socket on nonblocking mod" << std::endl, (void)0);
-  int clientIdx = getFreeClientIdx();
-  if (clientIdx == -1)
-    return;
-  fds[clientIdx].events = POLLIN;
-  fds[clientIdx].fd = clientSocket;
-  clients[clientIdx] = Client();
+  if (clientSocket > 0)
+  {
+    if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
+      return (close(clientSocket), std::cout << "failed to set socket on nonblocking mod" << std::endl, (void)0);
+    struct pollfd tmp;
+    tmp.fd = clientSocket;
+    tmp.events = POLLIN;
+    fds.push_back(tmp);
+    logevent(CONN, fds.size() - 1, clientSocket);
+    Client cl;
+    clients.push_back(cl);
+    std::cout << "addena client" << std::endl;
+  }
+  else
+    return (std::cout << RED << "ACCEPT : Failed to accept client !! " << RESET << std::endl, (void)0);
 }
 
 void MServer::handleClient(int index)
 {
+  std::cout << BLUE << "MServer::handleClient" << RESET << std::endl;
   char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
@@ -101,51 +108,34 @@ void MServer::handleClient(int index)
     return (deleteClient(index), (void)0);
   if (re == -1)
     return;
-  clients[index].req.feedMe(st_(buffer, buffer + re));
-  if (!clients[index].req.reading && clients[index].req.upDone)
+  clients[index - nserv].req.feedMe(st_(buffer, buffer + re));
+  if (!clients[index - nserv].req.reading && clients[index - nserv].req.upDone)
     fds[index].events = POLLOUT;
+  logevent(HAND, index, fds[index].fd);
 }
 
 void MServer::routin()
 {
-  int i;
   while (true)
   {
-    int status = poll(fds, MAX_CLENTS, -1);
+    int status = poll(fds.data(), fds.size(), -1);
     if (status == -1)
     {
-      perror("Error in poll");
+      std::cerr << "Error in poll" << std::endl;
       continue;
     }
-    i = -1;
-    while (++i < (int)nserv)
+    for (int i = 0; i < (int)fds.size(); i++)
     {
-      if (fds[i].revents & POLLIN)
-      {
+      if (i < (int)nserv)
         acceptClient(i);
-      }
-      if (fds[i].revents & (POLLHUP | POLLERR))
+      else
       {
-        deleteClient(i);
-      }
-    }
-    i = nserv - 1;
-    while (++i < MAX_CLENTS)
-    {
-      if (fds[i].fd != -1)
-      {
-        if (fds[i].events & POLLIN)
-        {
+        if (fds[i].revents & POLLIN)
           handleClient(i);
-        }
-        if (fds[i].events & POLLOUT)
-        {
+        else if (fds[i].events & POLLOUT)
           sendReesp(i);
-        }
-        if (fds[i].revents & POLLHUP)
-        {
+        else if (fds[i].revents & POLLHUP)
           deleteClient(i);
-        }
       }
     }
   }
@@ -153,26 +143,29 @@ void MServer::routin()
 
 void MServer::sendReesp(int index)
 {
-  if (!clients[index].gotResponse)
+  std::cout << "index=" << index << std::endl;
+  std::cout << BLUE << "MServer::sendReesp" << RESET << std::endl;
+
+  if (!clients[index - nserv].gotResponse)
   {
-    clients[index].resp.RetResponse(clients[index].req);
-    clients[index].gotResponse = true;
+    clients[index - nserv].resp.RetResponse(clients[index - nserv].req);
+    clients[index - nserv].gotResponse = true;
   }
 
-  st_ res = clients[index].resp.getRet();
+  st_ res = clients[index - nserv].resp.getRet();
 
-  if (!clients[index].resp.headersent)
+  if (!clients[index - nserv].resp.headersent)
   {
     if (send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
     {
       deleteClient(index);
       return;
     }
-    clients[index].resp.headersent = true;
+    clients[index - nserv].resp.headersent = true;
   }
 
-  int fd = clients[index].resp.getFd();
-  if (clients[index].resp.headersent && fd == -1)
+  int fd = clients[index - nserv].resp.getFd();
+  if (clients[index - nserv].resp.headersent && fd == -1)
   {
     deleteClient(index);
     return;
@@ -182,8 +175,8 @@ void MServer::sendReesp(int index)
   {
     size_t MAXSEND = 1024;
     char *buff = new char[MAXSEND];
-    clients[index].resp.sentData = read(fd, buff, MAXSEND);
-    if (clients[index].resp.sentData == -1 || clients[index].resp.sentData == 0)
+    clients[index - nserv].resp.sentData = read(fd, buff, MAXSEND);
+    if (clients[index - nserv].resp.sentData == -1 || clients[index - nserv].resp.sentData == 0)
     {
       delete[] buff;
       close(fd);
@@ -192,9 +185,10 @@ void MServer::sendReesp(int index)
     }
     else
     {
-      if (send(fds[index].fd, buff, clients[index].resp.sentData, 0) == -1)
+      if (send(fds[index].fd, buff, clients[index - nserv].resp.sentData, 0) == -1)
         deleteClient(index);
       delete[] buff;
+      return;
     }
     fds[index].events = POLLOUT;
     return;
@@ -204,13 +198,10 @@ void MServer::sendReesp(int index)
 
 void MServer::deleteClient(int index)
 {
-  if (clients.find(index) != clients.end())
-    clients.erase(index);
+  close(fds[index].fd);
+  clients.erase(clients.begin() + index - nserv);
+  fds.erase(fds.begin() + index);
 
-  if (fds[index].fd != -1)
-    close(fds[index].fd);
-  fds[index].fd = -1;
-  fds[index].events = POLLIN;
   std::cout << "a client disconnected" << std::endl;
 }
 
@@ -233,4 +224,27 @@ void MServer::Serving()
 {
   this->initServers();
   this->routin();
+}
+
+void MServer::logevent(int code, int index, int fd)
+{
+  switch (code)
+  {
+  case DISC:
+    std::cout << RED << "CLIENT Disconnected ";
+    break;
+
+  case CONN:
+    std::cout << GREEN << "CLIENT Connected ";
+    break;
+
+  case HAND:
+    std::cout << BLUE << "CLIENT Handled ";
+    break;
+
+  default:
+    break;
+  }
+
+  std::cout << "index=" << index << " fd=" << fd << RESET << std::endl;
 }

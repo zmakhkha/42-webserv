@@ -8,5 +8,6 @@ public:
     Response resp;
     bool gotResponse;
 
-    Client() : req(), resp(), gotResponse(false) {}
+    Client();
+    ~Client();
 };

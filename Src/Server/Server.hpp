@@ -48,11 +48,11 @@ class Response;
 class MServer {
 private:
     const std::vector<Server> servers;
-    struct pollfd *fds;
+    std::vector <struct pollfd> fds;
+    std::vector< Client> clients;
     sockaddr_in addrserv;
     int clientIndex;
     size_t nserv;
-    std::map<int, Client> clients;
 
 public:
     void handleClient(int clientFd);
@@ -65,6 +65,7 @@ public:
     int getClientIndex(int fd);
     int getFreeClientIdx();
     void deleteClient(int index);
+    void logevent(int code, int index, int fd);
 
     ~MServer();
     MServer();

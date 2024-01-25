@@ -1,6 +1,6 @@
 NAME		= WebServ
 CC			= c++  -g 
-FLAGS		= -Wall -Wextra -Werror  -std=c++98 
+FLAGS		= -Wall -Wextra -Werror  -std=c++98 -fsanitize=address
 OBJDIR 		= .obj
 
 FILES		= 	Src/main \
@@ -8,6 +8,7 @@ FILES		= 	Src/main \
 				Src/Server/Server \
 				Src/Request/Request \
 				Src/Response/Response \
+				Src/Client/Client \
 				Src/Cgi/Cgi \
 
 HEADER		=	Src/ConfigFile/myconfig.hpp \
@@ -15,6 +16,7 @@ HEADER		=	Src/ConfigFile/myconfig.hpp \
 				Src/Server/Server.hpp \
 				Src/Request/Request.hpp \
 				Src/Response/Response.hpp \
+				Src/Client/Client.hpp \
 				Src/Cgi/Cgi.hpp
 
 SRC			= $(FILES:=.cpp)
