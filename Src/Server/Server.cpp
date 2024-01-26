@@ -135,6 +135,9 @@ void MServer::routin() {
         if (fds[i].events & POLLOUT) {
           sendReesp(i);
         }
+        if (fds[i].revents & POLLHUP) {
+          deleteClient(i);
+        }
       }
     }
   }
