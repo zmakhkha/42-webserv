@@ -5,11 +5,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define RED "\u001b[31m"
-#define ORANGE "\u001b[33m"
-#define GREEN "\u001b[32m"
-#define RESET "\u001b[0m"
-#define MAX_SEND 1024
+#define RED  ""
+#define ORANGE  ""
+#define GREEN  ""
+#define RESET  ""
+#define MAX_SEND  1024
 
 const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: text/plain\r\n"
@@ -36,7 +36,7 @@ void MServer::cerror(const st_ &str) {
 void MServer::initServers() {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
-  memset(fds, 0, sizeof(fds));
+  memset(fds, 0, sizeof(pollfd));
   for (int i = 0; i < nserv; i++) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
@@ -79,6 +79,8 @@ void MServer::acceptClient(int index) {
 
   std::cout << "[server]index :" << index << " FD : " << s << std::endl;
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
+  if (!clientSocket) 
+    return;
   if (clientSocket == -1) {
     std::cerr << "Listening socket file descriptor: " << fds[index].fd
               << std::endl;
@@ -110,6 +112,10 @@ void MServer::handleClient(int index) {
     return;
   reqsMap[index].feedMe(st_(buffer));
   fds[index].events = POLLOUT;
+  // respMap[index].RetResponse(reqsMap[index]);
+  // st_ data = respMap[index].getRet();
+  // send(fds[index].fd, data.c_str(), data.length(), 0);
+  // deleteClient(index);
 }
 
 void MServer::routin() {
@@ -147,7 +153,7 @@ void MServer::sendReesp(int index) {
   if (!gotResp[index])
     respMap[index].RetResponse(reqsMap[index]);
   gotResp[index] = true;
-
+  
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
 
