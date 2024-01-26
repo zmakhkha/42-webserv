@@ -36,10 +36,19 @@
 #include <fstream>
 
 #define MAX_CLENTS 1024
-#define PAGE 1024
+#define PAGE 65536
 
 class request;
 class Response;
+
+class Client {
+public:
+    request req;
+    Response resp;
+    bool gotResp;
+
+    Client() : gotResp(false) {}
+};
 
 class MServer
 {
@@ -51,6 +60,8 @@ class MServer
 		size_t nserv;
 		std::map<int, request> reqsMap;
 		std::map<int, Response> respMap;
+		std::map<int, bool> gotResp;
+		std::map<int, Client> clients;
 
 	public:
 		void handleClient(int clientFd);
@@ -62,6 +73,8 @@ class MServer
 		void sendReesp(int index);
 		int getClientIndex(int fd);
 		int getFreeClientIdx();
+
+		void deleteClient(int index);
 
 		~MServer();
 		MServer();
