@@ -80,9 +80,9 @@ void MServer::acceptClient(int index) {
   std::cout << "[server]index :" << index << " FD : " << s << std::endl;
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
   if (clientSocket == -1) {
-  std::cerr << "Listening socket file descriptor: " << fds[index].fd
-            << std::endl;
-      return;
+    std::cerr << "Listening socket file descriptor: " << fds[index].fd
+              << std::endl;
+    return;
   }
   std::cout << GREEN << "[Client connected]" << RESET << std::endl;
   int clientIdx = getFreeClientIdx();
@@ -96,7 +96,8 @@ void MServer::acceptClient(int index) {
 }
 
 void MServer::handleClient(int index) {
-  std::cout << ORANGE << "handling client with [index] " << index << " [fd] " << fds[index].fd << RESET << std::endl;
+  std::cout << ORANGE << "handling client with [index] " << index << " [fd] "
+            << fds[index].fd << RESET << std::endl;
   char buffer[1024];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
@@ -147,9 +148,9 @@ void MServer::sendReesp(int index) {
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
 
-    //write(1, res.c_str(), strlen(res.c_str()));
-    if(send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0)==1)
-      return(deleteClient(index),(void)0);
+    // write(1, res.c_str(), strlen(res.c_str()));
+    if (send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == 1)
+      return (deleteClient(index), (void)0);
     respMap[index].headersent = true;
   }
 
@@ -168,9 +169,9 @@ void MServer::sendReesp(int index) {
       deleteClient(index);
     } else {
       // write(1, buff, respMap[index].sentData);
-      if (send(fds[index].fd, buff, respMap[index].sentData, 0)==-1)
-        return(delete[] buff, deleteClient(index),(void)0);
-      delete [] buff;
+      if (send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
+        return (delete[] buff, close(fd), deleteClient(index), (void)0);
+      delete[] buff;
     }
     fds[index].events = POLLOUT;
     return;
@@ -187,12 +188,17 @@ void MServer::deleteClient(int index) {
     respMap.erase(index);
   if (gotResp.find(index) != gotResp.end())
     gotResp.erase(index);
-  
-  close(fds[index].fd);
-  fds[index].fd = -1;
-  fds[index].events = POLLIN;
-  std::cout << RED << "[Client left !!]" << RESET << std::endl;
 
+  if (!keep) {
+    close(fds[index].fd);
+    fds[index].fd = -1;
+    fds[index].events = POLLIN;
+    std::cout << RED << "[Client left !!]" << RESET << std::endl;
+  } else {
+    reqsMap[index] = request();
+    respMap[index] = Response();
+    gotResp[index] = false;
+  }
 }
 
 int MServer::getFreeClientIdx() {
