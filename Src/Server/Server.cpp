@@ -99,9 +99,9 @@ void MServer::acceptClient(int index) {
 void MServer::handleClient(int index) {
   std::cout << ORANGE << "handling client with [index] " << index << " [fd] "
             << fds[index].fd << RESET << std::endl;
-  char buffer[1024];
+  char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
-  ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
+  ssize_t re = recv(fds[index].fd, buffer, PAGE , 0);
   if (re == -1) {
     std::cerr << "Error reading from client" << std::endl;
     deleteClient(index);

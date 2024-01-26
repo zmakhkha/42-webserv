@@ -10,6 +10,8 @@
 #include <sys/unistd.h>
 #include <unistd.h>
 #include <vector>
+
+
 void to_lower(st_ &key)
 {
   for (size_t i = 0; i < key.length(); i++)
@@ -250,6 +252,7 @@ void request::parseboundary(std::string chunk)
     return;
   }
   size_t pos = chunk.find("filename=\"");
+  std::cout << "-------->pos| " <<chunk << std::endl;
   if (pos != std::string::npos)
   {
     std::string file = chunk.substr(pos + 10, (chunk.find("\"\r\n") - pos - 10));
@@ -330,7 +333,7 @@ void request::parseSimpleBoundary(std::string &page)
     return (page1 = page, (void)0);
   }
   if (page2.empty())
-    st_ page2 (page.begin(), page.begin() + page.length());
+    page2 = page;
   if (!validboundary(page1 + page2))
   {
     write(fd, page1.c_str(), page1.length());
@@ -538,12 +541,12 @@ void request::parseChunked(std::string &page)
   page2 = "";
 }
 
+
 void request::feedMe(const st_ &data)
 {
   try
   {
     st_ str(data.c_str(),   data.length());
-    std::cout << "---------------->feedMe|" << data.size() << std::endl;
     cgiResult = cgiResStr;
     if (firstParse == false)
       parseMe(data);
