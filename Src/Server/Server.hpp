@@ -36,7 +36,6 @@
 #include <fstream>
 
 #define MAX_CLENTS 1024
-#define PAGE 65536
 
 class request;
 class Response;
@@ -56,7 +55,6 @@ class MServer
 		const std::vector<Server> servers;
 		struct pollfd *fds;
 		sockaddr_in addrserv;
-		int clientIndex;
 		size_t nserv;
 		std::map<int, request> reqsMap;
 		std::map<int, Response> respMap;

@@ -492,6 +492,11 @@ void request::feedMe(const st_ &data) {
       if (getMethod_() == "GET" || getMethod_() == "DELETE")
         return (reading = false, void(0));
       else if (getMethod_() == "POST" && getBoolean()) {
+        if (PAGE >= atol(headers["content-length"].c_str())) 
+        {
+          page1.erase();
+          page2.erase();
+        }
         if(!maxBody())  throw 413; 
         if (boundary.empty())
           throw 201;

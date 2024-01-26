@@ -10,6 +10,8 @@
 #define BOLD_CYAN "\033[1;36m"
 #define BOLD_WHITE "\033[1;37m"
 #define DEF "\033[0m"
+#define PAGE 65536
+
 
 #include "../ConfigFile/ConfigFile.hpp"
 #include "../Cgi/Cgi.hpp"

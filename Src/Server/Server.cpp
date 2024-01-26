@@ -25,7 +25,6 @@ MServer::MServer() : servers(Config::getConfig()) {
     fds[i].fd = -1;
     fds[i].events = POLLIN;
   }
-  clientIndex = nserv;
 }
 
 void MServer::cerror(const st_ &str) {
@@ -111,11 +110,8 @@ void MServer::handleClient(int index) {
   if (re == 0)
     return;
   reqsMap[index].feedMe(st_(buffer));
-  fds[index].events = POLLOUT;
-  // respMap[index].RetResponse(reqsMap[index]);
-  // st_ data = respMap[index].getRet();
-  // send(fds[index].fd, data.c_str(), data.length(), 0);
-  // deleteClient(index);
+  if (!reqsMap[index].reading)
+    fds[index].events = POLLOUT;
 }
 
 void MServer::routin() {
