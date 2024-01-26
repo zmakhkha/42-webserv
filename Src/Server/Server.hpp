@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../ConfigFile/myconfig.hpp"
-#include "../Client/Client.hpp"
+#include "../ConfigFile/ConfigFile.hpp"
+#include "../Response/Response.hpp"
 
 #include <deque>
 #include <arpa/inet.h>
@@ -35,38 +35,45 @@
 #include <poll.h>
 #include <fstream>
 
-#define MAX_CLENTS SOMAXCONN
-#define PAGE 65535
+#define MAX_CLENTS 1024
 
 class request;
 class Response;
 
-
-
-// Modify the MServer class definition
-
-class MServer {
-private:
-    const std::vector<Server> servers;
-    std::vector <struct pollfd> fds;
-    std::vector< Client> clients;
-    sockaddr_in addrserv;
-    int clientIndex;
-    size_t nserv;
-
+class Client {
 public:
-    void handleClient(int clientFd);
-    void acceptClient(int index);
-    void cerror(const st_ &str);
-    void initServers();
-    void Serving();
-    void routin();
-    void sendReesp(int index);
-    int getClientIndex(int fd);
-    int getFreeClientIdx();
-    void deleteClient(int index);
-    void logevent(int code, int index, int fd);
+    request req;
+    Response resp;
+    bool gotResp;
 
-    ~MServer();
-    MServer();
+    Client() : gotResp(false) {}
+};
+
+class MServer
+{
+	private:
+		const std::vector<Server> servers;
+		struct pollfd *fds;
+		sockaddr_in addrserv;
+		size_t nserv;
+		std::map<int, request> reqsMap;
+		std::map<int, Response> respMap;
+		std::map<int, bool> gotResp;
+		std::map<int, Client> clients;
+
+	public:
+		void handleClient(int clientFd);
+		void acceptClient(int index);
+		void cerror(const st_ &str);
+		void initServers();
+		void Serving();
+		void routin();
+		void sendReesp(int index);
+		int getClientIndex(int fd);
+		int getFreeClientIdx();
+
+		void deleteClient(int index);
+
+		~MServer();
+		MServer();
 };
