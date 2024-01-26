@@ -14,6 +14,7 @@ Cgi::~Cgi()
 Cgi::Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv) : _uri(uri), _methode(methode), _location(loc), upload_path(upPath), _reqHeaders(heads), _respPath(cgiRes), srv(_srv)
 {
   forked = false;
+  cgiDone = false;
   _CgiScriptPath = srv.location[_location].cgi.second;
   _isPost = _methode == "POST";
 }
@@ -171,6 +172,8 @@ void Cgi::execute()
   {
     int stat;
     int res = waitpid(pid, &stat, WNOHANG);
+    if (res == 0)
+      return;
     if (res < 0)
       throw(500);
     else if (res > 0)
@@ -179,6 +182,7 @@ void Cgi::execute()
         throw 504;
       else if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0 || WIFSIGNALED(stat) || !status)
         throw 502;
+      cgiDone = true;
     }
   }
   else

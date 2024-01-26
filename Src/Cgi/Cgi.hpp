@@ -39,6 +39,7 @@ class Cgi{
 
 
 	public:
+		bool cgiDone;
 		Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv);
 		Cgi(int var);
 		~Cgi();
