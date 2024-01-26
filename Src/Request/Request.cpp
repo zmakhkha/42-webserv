@@ -10,7 +10,6 @@
 #include <sys/unistd.h>
 #include <unistd.h>
 #include <vector>
-
 void to_lower(st_ &key)
 {
   for (size_t i = 0; i < key.length(); i++)
@@ -331,7 +330,7 @@ void request::parseSimpleBoundary(std::string &page)
     return (page1 = page, (void)0);
   }
   if (page2.empty())
-    page2 = page;
+    st_ page2 (page.begin(), page.begin() + page.length());
   if (!validboundary(page1 + page2))
   {
     write(fd, page1.c_str(), page1.length());
@@ -543,7 +542,8 @@ void request::feedMe(const st_ &data)
 {
   try
   {
-    st_ str = data;
+    st_ str(data.c_str(),   data.length());
+    std::cout << "---------------->feedMe|" << data.size() << std::endl;
     cgiResult = cgiResStr;
     if (firstParse == false)
       parseMe(data);
@@ -578,6 +578,13 @@ void request::feedMe(const st_ &data)
         return (upDone = true, reading = false, void(0));
       else if (getMethod_() == "POST" && getBoolean())
       {
+        if (PAGE >= atol(headers["content-length"].c_str()))
+        {
+          page1.erase();
+          page2.erase();
+          page1 = "";
+          page2 = "";
+        }
         if (!maxBody())
           throw 413;
         if (boundary.empty())

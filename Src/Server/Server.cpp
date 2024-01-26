@@ -25,7 +25,6 @@ MServer::MServer() : servers(Config::getConfig()) {
     fds[i].fd = -1;
     fds[i].events = POLLIN;
   }
-  clientIndex = nserv;
 }
 
 void MServer::cerror(const st_ &str) {
@@ -37,7 +36,7 @@ void MServer::initServers() {
   if (nserv >= MAX_CLENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
   memset(fds, 0, sizeof(pollfd));
-  for (int i = 0; i < nserv; i++) {
+  for (int i = 0; i < (int)nserv; i++) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
       cerror("Server: creating socket failed");
@@ -82,8 +81,8 @@ void MServer::acceptClient(int index) {
   if (!clientSocket) 
     return;
   if (clientSocket == -1) {
-    std::cerr << "Listening socket file descriptor: " << fds[index].fd
-              << std::endl;
+    // std::cerr << "Listening socket file descriptor: " << fds[index].fd
+    //           << std::endl;
     return;
   }
   std::cout << GREEN << "[Client connected]" << RESET << std::endl;
@@ -110,8 +109,9 @@ void MServer::handleClient(int index) {
   }
   if (re == 0)
     return;
-  reqsMap[index].feedMe(st_(buffer));
-  if (!reqsMap[index].reading)
+    std::cout << "---------------->|" << re << std::endl;
+  reqsMap[index].feedMe(st_(buffer, re));
+  if (!reqsMap[index].reading && reqsMap[index].upDone)
     fds[index].events = POLLOUT;
 }
 
@@ -124,7 +124,7 @@ void MServer::routin() {
       continue;
     }
     i = -1;
-    while (++i < nserv) {
+    while (++i < (int)nserv) {
       if (fds[i].revents & POLLIN) {
         acceptClient(i);
       }
@@ -132,7 +132,7 @@ void MServer::routin() {
     i = nserv - 1;
     while (++i < MAX_CLENTS) {
       if (fds[i].fd != -1) {
-        if (fds[i].events & POLLIN) {
+        if (fds[i].revents & POLLIN) {
           handleClient(i);
         }
         if (fds[i].events & POLLOUT) {
@@ -198,7 +198,7 @@ void MServer::deleteClient(int index) {
   if (!keep) {
     close(fds[index].fd);
     fds[index].fd = -1;
-    fds[index].events = POLLIN;
+    fds[index].events = 0;
     std::cout << RED << "[Client left !!]" << RESET << std::endl;
   } else {
     reqsMap[index] = request();
