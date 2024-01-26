@@ -168,7 +168,7 @@ void MServer::sendReesp(int index) {
 
   if (fd != -1) {
     char *buff = new char[PAGE];
-    respMap[index].sentData = read(fd, buff, MAX_SEND);
+    respMap[index].sentData = read(fd, buff, PAGE);
     if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
       delete[] buff;
       close(fd);
