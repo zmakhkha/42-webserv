@@ -33,6 +33,10 @@ class Cgi{
 		std::string _respPath;
 		Server srv;
 		Cgi();
+		bool forked;
+		pid_t pid;
+ 		bool status;
+
 
 	public:
 		Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv);

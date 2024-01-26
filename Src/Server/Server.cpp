@@ -109,7 +109,6 @@ void MServer::handleClient(int index) {
   }
   if (re == 0)
     return;
-    std::cout << "---------------->|" << re << std::endl;
   reqsMap[index].feedMe(st_(buffer, re));
   if (!reqsMap[index].reading && reqsMap[index].upDone)
     fds[index].events = POLLOUT;
@@ -174,7 +173,6 @@ void MServer::sendReesp(int index) {
       close(fd);
       deleteClient(index);
     } else {
-      // write(1, buff, respMap[index].sentData);
       if (send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
         return (delete[] buff, close(fd), deleteClient(index), (void)0);
       delete[] buff;
