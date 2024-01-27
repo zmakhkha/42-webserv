@@ -163,7 +163,7 @@ void Cgi::execute()
         status = false;
         perror("freopen : ");
       }
-      alarm(3);
+      alarm(10);
       if (execve(argv[0], argv, envp) == -1)
       {
         perror("execve");
@@ -189,6 +189,7 @@ void Cgi::execute()
     {
       std::cout << "Internal Server Error" << std::endl;
       throw(500);
+      exit(0);
     }
     else if (res > 0)
     {
