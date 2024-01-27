@@ -35,7 +35,10 @@ void	Response::Set_Up_Headers( st_ &ret, request &req, st_ body ) {
 	ret += "Date: " + Date.substr(0, Date.length() - 1) + " GMT\r\n";
 	if (!sto_["connection"].empty()) ret += conn + ": " + sto_["connection"] + "\r\n";
 	else ret += conn + ": " + "closed\r\n";
-	ret += serv + ": " + SERVER + "\r\n";
+	if (!srv.server_name.empty())
+		ret += serv + ": " + srv.server_name + "\r\n";
+	else 
+		ret += serv + ": " + SERVER + "\r\n";
 	ret += "Content-Length: " + std::to_string(body.length()) + "\r\n";
 	size_t p = req.getURI().rfind(".");
 	if (p != std::string::npos && !text_types[req.getURI().substr(p + 1)].empty() && status_code == 200) ret += ctype + ": " + text_types[req.getURI().substr(p + 1)] + "\r\n\r\n";
@@ -221,7 +224,10 @@ void    Response::is_file( st_ path, request &req ) {
     ret += "Date: " + Date.substr(0, Date.length() - 1) + " GMT " + "\r\n";
     if (!conn.empty() && !sto_["connection"].empty()) ret += conn + ": " + sto_["connection"] + "\r\n";
     else ret += conn + ": " + "closed\r\n";
-    ret += serv + ": " + SERVER + "\r\n";
+	if (!srv.server_name.empty())
+		ret += serv + ": " + srv.server_name + "\r\n";
+	else 
+		ret += serv + ": " + SERVER + "\r\n";
     ret += "Content-Length: " + std::to_string(setting.statbuf.st_size) + "\r\n";
     if (text_types[req.getURI().substr(req.getURI().find(".") + 1)].empty())
 		ret += ctype + ": text/plain\r\n\r\n";
@@ -346,7 +352,6 @@ void	Response::DeleteContent( request &req, st_ path ) {
 void	Response::DELResource( request &req ) {
 	st_	body;
 	st_ root = srv.location[location].root;
-	std::cout << root << std::endl;
 	if (srv.location[location].prefix == "/")
 		root += "/";
 	st_	path = root + req.getURI().substr(srv.location[location].prefix.length());
@@ -364,7 +369,7 @@ void	Response::countCgiBody( request req ) {
 	st_ Date = std::ctime(&curr_time);
 	std::fstream	file(req.cgiResult);
 	if (!file.is_open())
-		perror("could not open file\n");
+		std::cerr << "Response::countCgiBody : could not open file" << std::endl;
 	while (std::getline(file, body))
 		app += body + "\n";
 	st_ headers = req.getVersion() + " " + std::to_string(status_code) + " " + error_codes[status_code] + "\r\n";

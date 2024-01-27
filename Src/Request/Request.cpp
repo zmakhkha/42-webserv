@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <vector>
 
+
 void to_lower(st_ &key)
 {
   for (size_t i = 0; i < key.length(); i++)
@@ -410,7 +411,7 @@ void request::fillCgiBodyNb(const st_ &data)
   int fd = open(cgiBodyPath.c_str(), O_APPEND | O_RDWR | O_CREAT, 0644);
   if (fd < 0)
   {
-    perror(st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str());
+    std::cerr << "" <<  st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str() << std::endl;
     return (reading = false, void(0));
   }
   rd = write(fd, page.c_str(), page.length());
@@ -429,7 +430,7 @@ void request::fillCgiBody(const st_ &data)
   int fd = open(cgiBodyPath.c_str(), O_APPEND | O_RDWR | O_CREAT, 0644);
   if (fd < 0)
   {
-    perror(st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str());
+    std::cerr << st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str() << std::endl;
     return (reading = false, void(0));
   }
   write(fd, page.c_str(), page.length());
@@ -539,11 +540,12 @@ void request::parseChunked(std::string &page)
   page2 = "";
 }
 
+
 void request::feedMe(const st_ &data)
 {
   try
   {
-    st_ str = data;
+    st_ str(data.c_str(),   data.length());
     cgiResult = cgiResStr;
     if (firstParse == false)
       parseMe(data);
@@ -578,6 +580,13 @@ void request::feedMe(const st_ &data)
         return (upDone = true, reading = false, void(0));
       else if (getMethod_() == "POST" && getBoolean())
       {
+        if (PAGE >= atol(headers["content-length"].c_str()))
+        {
+          page1.erase();
+          page2.erase();
+          page1 = "";
+          page2 = "";
+        }
         if (!maxBody())
           throw 413;
         if (boundary.empty())

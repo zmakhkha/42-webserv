@@ -3,43 +3,47 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/fcntl.h>
+#include <sys/signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-Cgi::~Cgi() 
+Cgi::~Cgi()
 {
-
 }
 
-Cgi::Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv) :
-_uri(uri), _methode(methode), _location(loc), upload_path(upPath), _reqHeaders(heads), _respPath(cgiRes), srv(_srv)
+Cgi::Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv) : _uri(uri), _methode(methode), _location(loc), upload_path(upPath), _reqHeaders(heads), _respPath(cgiRes), srv(_srv)
 {
   _CgiScriptPath = srv.location[_location].cgi.second;
   _isPost = _methode == "POST";
 }
 
-void Cgi::formatKey(std::string &key) {
+void Cgi::formatKey(std::string &key)
+{
   std::string tmp = "HTTP_";
-  for (size_t i = 0; i < key.length(); i++) {
+  for (size_t i = 0; i < key.length(); i++)
+  {
     if (key[i] == '-')
       key[i] = '_';
     key[i] = std::toupper(key[i]);
   }
-    key = tmp + key;
+  key = tmp + key;
 }
 
-void Cgi::formatHeaders() {
+void Cgi::formatHeaders()
+{
   std::string tmpKey;
   for (std::map<std::string, std::string>::iterator it = _reqHeaders.begin();
-       it != _reqHeaders.end(); it++) {
-        tmpKey = it->first;
-        formatKey(tmpKey);
-        _envLst.push_back(tmpKey + "=" + it->second + "");
+       it != _reqHeaders.end(); it++)
+  {
+    tmpKey = it->first;
+    formatKey(tmpKey);
+    _envLst.push_back(tmpKey + "=" + it->second + "");
   }
 }
 
-void Cgi::setExtraEnv() {
+void Cgi::setExtraEnv()
+{
   formatHeaders();
 }
 
@@ -60,11 +64,12 @@ std::pair<st_, st_> Cgi::getPathQuery(st_ uri)
   return res;
 }
 
-void Cgi::setEnv() {
+void Cgi::setEnv()
+{
 
-		st_ SERVER_SOFTWARE  = "SA3DYA/V1.0";
-		st_ SERVER_NAME= "SA3DYA";
-		st_ GATEWAY_INTERFACE= "SA3SYA_CGI/1.1";
+  st_ SERVER_SOFTWARE = "SA3DYA/V1.0";
+  st_ SERVER_NAME = "SA3DYA";
+  st_ GATEWAY_INTERFACE = "SA3SYA_CGI/1.1";
 
   std::pair<st_, st_> tmp = getPathQuery(_uri);
   st_ root = srv.location[_location].root;
@@ -93,7 +98,6 @@ void Cgi::setUnique()
   _envLst.push_back("CONTENT_TYPE=" + _reqHeaders["content-type"]);
   _reqHeaders.erase(_reqHeaders.find("content-length"));
   _reqHeaders.erase(_reqHeaders.find("content-type"));
-
 }
 
 void Cgi::excecCgi(std::string bodyPath)
@@ -105,21 +109,24 @@ void Cgi::excecCgi(std::string bodyPath)
   execute();
 }
 
-
-void Cgi::execute() {
+void Cgi::execute()
+{
   if (!_scriptPath.length())
-    throw (501);
+    throw(501);
   pid_t pid = fork();
   bool status = true;
-  if (pid == 0) {
+  if (pid == 0)
+  {
+    std::cout << getpid() << std::endl;
     char *envp[_envLst.size() + 1];
-    for (std::size_t i = 0; i < _envLst.size(); ++i) {
+    for (std::size_t i = 0; i < _envLst.size(); ++i)
+    {
       envp[i] = const_cast<char *>(_envLst[i].c_str());
     }
     envp[_envLst.size()] = NULL;
     if (access(_CgiScriptPath.c_str(), F_OK) != 0)
     {
-      perror("access : ");
+      std::cerr << "Cgi::execute : access Failed" << std::endl;
       throw 502;
     }
     char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
@@ -127,39 +134,50 @@ void Cgi::execute() {
     int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
     if (fd < 0)
     {
-        status = false;
-        perror("open : ");
-    }
-    FILE *out = freopen(_respPath.c_str(), "w", stdout);
-    if (_isPost) {
-      FILE *in = freopen(_postBody.c_str(), "r", stdin);
-      if (in == nullptr) {
-        perror("freopen : ");
-        status = false;
-      }
-    }
-    if (out == nullptr) {
-        status = false;
-      perror("freopen : ");
-    }
-    alarm(6);
-    if (execve(argv[0], argv, envp) == -1)
-    {
-      perror("execve");
+      status = false;
+      std::cerr << "Cgi::execute : open Faied" << std::endl;
       throw 502;
     }
-  } else if (pid > 0) {
+    FILE *out = freopen(_respPath.c_str(), "w", stdout);
+    if (_isPost)
+    {
+      FILE *in = freopen(_postBody.c_str(), "r", stdin);
+      if (in == nullptr)
+      {
+        std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+        status = false;
+        throw 502;
+      }
+    }
+    if (out == nullptr)
+    {
+      status = false;
+      std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+      throw 502;
+    }
+    alarm(60 * 300);
+    if (execve(argv[0], argv, envp) == -1)
+    {
+      std::cerr << "Cgi::execute : execve Faied" << std::endl;
+      throw 502;
+    }
+  }
+  else if (pid > 0)
+  {
     int stat;
     waitpid(pid, &stat, 0);
     if (WEXITSTATUS(stat) != 0 || !status)
       throw 502;
-    else if (WIFSIGNALED(stat))
+    else if (WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
       throw 504;
-  } else {
-    perror("fork");
+    else if (WIFSIGNALED(stat))
+      throw 502;
+  }
+  else
+  {
+    std::cerr << "Cgi::execute : fork Faied" << std::endl;
   }
 }
-
 
 st_ Cgi::getRespPath(void) const
 {

@@ -35,11 +35,19 @@
 #include <poll.h>
 #include <fstream>
 
-#define MAX_CLENTS 1024
-#define PAGE 65535
+#define MAX_CLENTS SOMAXCONN
 
 class request;
 class Response;
+
+class Client {
+public:
+    request req;
+    Response resp;
+    bool gotResp;
+
+    Client() : gotResp(false) {}
+};
 
 class MServer
 {
@@ -47,11 +55,11 @@ class MServer
 		const std::vector<Server> servers;
 		struct pollfd *fds;
 		sockaddr_in addrserv;
-		int clientIndex;
 		size_t nserv;
 		std::map<int, request> reqsMap;
 		std::map<int, Response> respMap;
 		std::map<int, bool> gotResp;
+		std::map<int, Client> clients;
 
 	public:
 		void handleClient(int clientFd);

@@ -1,6 +1,6 @@
 NAME		= WebServ
-CC			= c++  -g 
-FLAGS		= -Wall -Wextra -Werror  -std=c++98 
+CC			= c++ -g
+FLAGS		= -Wall -Wextra -Werror  -std=c++98
 OBJDIR 		= .obj
 
 FILES		= 	Src/main \
@@ -40,7 +40,5 @@ fclean: clean
 	@echo  "🗑️   Deleting $(NAME)."
 
 re: fclean all
-del : 
-	@rm /tmp/f*
-	@rm /tmp/r*
+
 .PHONY: all clean fclean re

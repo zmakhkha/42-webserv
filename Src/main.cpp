@@ -21,7 +21,7 @@
 st_ getConf(int ac, char **av) {
   st_ conf;
   if (ac == 1) {
-    std::cout <<  "Loading default server !!" << std::endl;
+    std::cout <<  "Loading default Config !!" << std::endl;
     conf = ".config/.config";
   } else if (ac == 2) {
     conf = av[1];

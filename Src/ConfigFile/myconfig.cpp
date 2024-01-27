@@ -243,18 +243,3 @@ Server Config::getservconf( std::string server_name, std::string host )
 	}
 	return ret;
 }
-
-// int main(int ac, char **av) {
-// 	try {
-// 		(void)ac;
-// 		vect_	dek;
-// 		Config::LooponServers( av[1] );
-// 		printfVec(Config::getConfig());
-// 		// std::cout << config[0].location[7].cgi.first << std::endl;
-// 		// std::cout << config[0].location[7].autoindex << std::endl;
-// 		// std::cout << config[0].location[7].prefix << std::endl;
-// 	}
-// 	catch ( std::exception &e ) {
-// 		std::cout << e.what() << std::endl;
-// 	}
-// }

@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <sys/fcntl.h>
 
+#define PAGE 65536
 #define  K 1024
 #define  M 1000 * 1024
 #define  G 1000 * 1000 * 1024

@@ -1,20 +1,11 @@
 #include "Server.hpp"
+#include <cstdlib>
 #include <deque>
 #include <fcntl.h>
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#define RED ""
-#define ORANGE ""
-#define GREEN ""
-#define RESET ""
-
-const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "Content-Length: 15\r\n"
-                               "\r\n"
-                               "Hello, Client!\n";
+#define MAX_SEND  1024
 
 MServer::~MServer() { delete[] fds; }
 MServer::MServer() : servers(Config::getConfig()) {
@@ -24,7 +15,6 @@ MServer::MServer() : servers(Config::getConfig()) {
     fds[i].fd = -1;
     fds[i].events = POLLIN;
   }
-  clientIndex = nserv;
 }
 
 void MServer::cerror(const st_ &str) {
@@ -44,8 +34,7 @@ void MServer::initServers() {
     bzero(&addrserv, sizeof(addrserv));
     addrserv.sin_family = AF_INET;
     addrserv.sin_addr.s_addr = htonl(INADDR_ANY);
-    addrserv.sin_port = htons(atoi(servers[i].listen.second.c_str()));
-    std::cout << "Server Listening on port : " << servers[i].listen.second << std::endl;
+    addrserv.sin_port = htons(stoi(servers[i].listen.second));
 
     int optval = 1;
 
@@ -68,6 +57,8 @@ void MServer::initServers() {
 
     fds[i].fd = sock;
     fds[i].events = POLLIN;
+    std::cout << "Server listening on port " << ntohs(addrserv.sin_port)
+              << std::endl;
   }
 }
 
@@ -76,12 +67,10 @@ void MServer::acceptClient(int index) {
   int s = fds[index].fd;
 
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
+  if (!clientSocket) 
+    return;
   if (clientSocket == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      return;
-    } else {
-      return;
-    }
+    return;
   }
   int clientIdx = getFreeClientIdx();
   if (clientIdx == -1)
@@ -96,21 +85,16 @@ void MServer::acceptClient(int index) {
 void MServer::handleClient(int index) {
   char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
-  ssize_t re = recv(fds[index].fd, buffer, sizeof(buffer) - 1, 0);
-  if(re == 0)
-  {
+  ssize_t re = recv(fds[index].fd, buffer, PAGE , 0);
+  if (re == -1) {
+    std::cerr << "Error reading from client" << std::endl;
     deleteClient(index);
     return;
   }
-    if (re == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return;
-        }
-        deleteClient(index);
-        return;
-    }
-  reqsMap[index].feedMe(st_(buffer, buffer + re));
-  if(!reqsMap[index].reading && reqsMap[index].upDone)
+  if (re == 0)
+    return;
+  reqsMap[index].feedMe(st_(buffer, re));
+  if (!reqsMap[index].reading && reqsMap[index].upDone)
     fds[index].events = POLLOUT;
 }
 
@@ -119,49 +103,45 @@ void MServer::routin() {
   while (true) {
     int status = poll(fds, MAX_CLENTS, -1);
     if (status == -1) {
-      perror("Error in poll");
-      continue;
+      delete []fds;
+      std::cerr << "Error in poll" << std::endl;
+      exit(EXIT_FAILURE);
     }
     i = -1;
     while (++i < (int)nserv) {
       if (fds[i].revents & POLLIN) {
         acceptClient(i);
       }
-      if (fds[i].revents & (POLLHUP | POLLERR)) {
-        deleteClient(i);
-      }
     }
     i = nserv - 1;
     while (++i < MAX_CLENTS) {
       if (fds[i].fd != -1) {
-        if (fds[i].events & POLLIN) {
+        if (fds[i].revents & POLLIN) {
           handleClient(i);
         }
         if (fds[i].events & POLLOUT) {
           sendReesp(i);
         }
-        // if (fds[i].events & POLLHUP) {
-        //   deleteClient(i);
-        // }
+        if (fds[i].revents & POLLHUP) {
+          deleteClient(i);
+        }
       }
     }
   }
 }
 
 void MServer::sendReesp(int index) {
-
   if (!gotResp[index])
     respMap[index].RetResponse(reqsMap[index]);
-  
   gotResp[index] = true;
-
+  
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
-    if(send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
-      deleteClient(index);
+
+    if (send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
+      return (deleteClient(index), (void)0);
     respMap[index].headersent = true;
   }
-
 
   int fd = respMap[index].getFd();
   if (respMap[index].headersent && fd == -1) {
@@ -170,37 +150,43 @@ void MServer::sendReesp(int index) {
   }
 
   if (fd != -1) {
-    size_t MAXSEND = 10000;
-    char *buff = new char[MAXSEND];
-    respMap[index].sentData = read(fd, buff, MAXSEND);
+    char *buff = new char[MAX_SEND];
+    respMap[index].sentData = read(fd, buff, MAX_SEND);
     if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
-      return (delete[] buff, close(fd), deleteClient(index), (void )0);
+      delete[] buff;
+      close(fd);
+      deleteClient(index);
     } else {
-      if(send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
-        deleteClient(index);
+      if (send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
+        return (delete[] buff, close(fd), deleteClient(index), (void)0);
       delete[] buff;
     }
-    return(fds[index].events = POLLOUT, (void)0);
+    fds[index].events = POLLOUT;
+    return;
   }
 
   deleteClient(index);
 }
 
 void MServer::deleteClient(int index) {
-    if (reqsMap.find(index) != reqsMap.end())
-        reqsMap.erase(index);
-    if (respMap.find(index) != respMap.end())
-        respMap.erase(index);
-    if (gotResp.find(index) != gotResp.end())
-        gotResp.erase(index);
+  bool keep = reqsMap[index].getConnection();
+  if (reqsMap.find(index) != reqsMap.end())
+    reqsMap.erase(index);
+  if (respMap.find(index) != respMap.end())
+    respMap.erase(index);
+  if (gotResp.find(index) != gotResp.end())
+    gotResp.erase(index);
 
-    if (fds[index].fd != -1) {
-        close(fds[index].fd);
-    }
-        fds[index].fd = -1;
-    fds[index].events = POLLIN;
+  if (!keep) {
+    close(fds[index].fd);
+    fds[index].fd = -1;
+    fds[index].events = 0;
+  } else {
+    reqsMap[index] = request();
+    respMap[index] = Response();
+    gotResp[index] = false;
+  }
 }
-
 
 int MServer::getFreeClientIdx() {
   int i = 0;
@@ -209,6 +195,7 @@ int MServer::getFreeClientIdx() {
       break;
   }
   if (i == MAX_CLENTS) {
+    std::cerr << "Unable to add another client !!" << std::endl;
     i = -1;
   }
   return i;
