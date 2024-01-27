@@ -5,10 +5,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define RED  ""
-#define ORANGE  ""
-#define GREEN  ""
-#define RESET  ""
+#define RED  "\033[1;31m"
+#define ORANGE  "\033[1;33m"
+#define GREEN  "\033[1;32m"
+#define RESET  "\033[0m"
+
 #define MAX_SEND  1024
 
 const char *RESPONSE_MESSAGE = "HTTP/1.1 200 OK\r\n"
@@ -146,6 +147,10 @@ void MServer::routin() {
 }
 
 void MServer::sendReesp(int index) {
+  if (reqsMap[index].cgiDone)
+    reqsMap[index].handleCgi(st_(""));
+  if (!(!reqsMap[index].reading && reqsMap[index].upDone && reqsMap[index].cgiDone))
+    return;
   if (!gotResp[index])
     respMap[index].RetResponse(reqsMap[index]);
   gotResp[index] = true;

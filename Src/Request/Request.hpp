@@ -13,7 +13,6 @@
 
 #include "../ConfigFile/myconfig.hpp"
 #include "../Cgi/Cgi.hpp"
-
 #include <iostream>
 #include <cstring>
 #include <sys/socket.h>
@@ -68,7 +67,9 @@ class request {
 		long readBits;
 
 	public :
+		Cgi obj;
 		bool upDone;
+		bool cgiDone;
 		Server Serv;
         bool cgi;
 		int	locate;

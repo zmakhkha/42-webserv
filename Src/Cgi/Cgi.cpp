@@ -9,6 +9,13 @@
 
 Cgi::~Cgi()
 {
+  if (!cgiDone)
+    std::cerr << "CGI Terminated Before Doing The Job !!" << std::endl;
+}
+Cgi::Cgi()
+{
+  if (!cgiDone)
+    std::cerr << "CGI Started !!" << std::endl;
 }
 
 Cgi::Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv) : _uri(uri), _methode(methode), _location(loc), upload_path(upPath), _reqHeaders(heads), _respPath(cgiRes), srv(_srv)
@@ -112,6 +119,7 @@ void Cgi::excecCgi(std::string bodyPath)
 
 void Cgi::execute()
 {
+    _CgiScriptPath = srv.location[_location].cgi.second;
   if (!_scriptPath.length())
     throw(501);
   if (!forked)
@@ -155,7 +163,7 @@ void Cgi::execute()
         status = false;
         perror("freopen : ");
       }
-      alarm(6);
+      alarm(3);
       if (execve(argv[0], argv, envp) == -1)
       {
         perror("execve");
@@ -173,14 +181,21 @@ void Cgi::execute()
     int stat;
     int res = waitpid(pid, &stat, WNOHANG);
     if (res == 0)
+    {
+      std::cout << "-------------------|mazaaaaaaal" << std::endl;
       return;
+    }
     if (res < 0)
+    {
+      std::cout << "Internal Server Error" << std::endl;
       throw(500);
+    }
     else if (res > 0)
     {
+      std::cout << "-------------------|CGI Done" << std::endl;
       if (WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
         throw 504;
-      else if (WIFEXITED(stat) && WEXITSTATUS(stat) != 0 || WIFSIGNALED(stat) || !status)
+      else if ((WIFEXITED(stat) && WEXITSTATUS(stat)) != 0 || WIFSIGNALED(stat) || !status)
         throw 502;
       cgiDone = true;
     }
@@ -191,7 +206,100 @@ void Cgi::execute()
   }
 }
 
-st_ Cgi::getRespPath(void) const
+Cgi::Cgi(const Cgi &tmp)
 {
-  return this->_respPath;
+  this->_uri = tmp.getUri();
+  this->_methode = tmp.getMethode();
+  this->_location = tmp.getLocation();
+  this->upload_path = tmp.getUploadPath();
+  this->_reqHeaders = tmp.getReqHeaders();
+  this->_respPath = tmp.getRespPath();
+  this->srv = tmp.getServer();
+  _CgiScriptPath = srv.location[_location].cgi.second;
+}
+
+Cgi &Cgi::operator=(const Cgi &tmp)
+{
+  if (this != &tmp)
+  {
+    this->_uri = tmp.getUri();
+    this->_methode = tmp.getMethode();
+    this->_location = tmp.getLocation();
+    this->upload_path = tmp.getUploadPath();
+    this->_reqHeaders = tmp.getReqHeaders();
+    this->_respPath = tmp.getRespPath();
+    this->srv = tmp.getServer();
+    // std::cout << "----->|" << srv.location[].cgi.first << std::endl;
+  }
+  return (*this);
+}
+
+void Cgi::setUri(const st_ &uri)
+{
+  _uri = uri;
+}
+
+st_ Cgi::getUri() const
+{
+  return _uri;
+}
+
+void Cgi::setMethode(const st_ &methode)
+{
+  _methode = methode;
+}
+
+st_ Cgi::getMethode() const
+{
+  return _methode;
+}
+
+void Cgi::setLocation(int location)
+{
+  _location = location;
+}
+
+int Cgi::getLocation() const
+{
+  return _location;
+}
+
+void Cgi::setUploadPath(const st_ &uploadPath)
+{
+  upload_path = uploadPath;
+}
+
+st_ Cgi::getUploadPath() const
+{
+  return upload_path;
+}
+
+void Cgi::setReqHeaders(const std::map<st_, st_> &reqHeaders)
+{
+  _reqHeaders = reqHeaders;
+}
+
+std::map<st_, st_> Cgi::getReqHeaders() const
+{
+  return _reqHeaders;
+}
+
+void Cgi::setRespPath(const st_ &respPath)
+{
+  _respPath = respPath;
+}
+
+st_ Cgi::getRespPath() const
+{
+  return _respPath;
+}
+
+void Cgi::setServer(const Server &server)
+{
+  srv = server;
+}
+
+Server Cgi::getServer() const
+{
+  return srv;
 }
