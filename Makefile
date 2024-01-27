@@ -1,6 +1,6 @@
 NAME		= WebServ
 CC			= c++  -g 
-FLAGS		= -Wall -Wextra -Werror  -std=c++98 -fsanitize=address
+FLAGS		= #-Wall -Wextra -Werror  -std=c++98 -fsanitize=address
 OBJDIR 		= .obj
 
 FILES		= 	Src/main \

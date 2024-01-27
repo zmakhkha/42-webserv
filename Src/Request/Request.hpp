@@ -116,5 +116,6 @@ class request {
 		void	chunkData(std::string &data);
 		bool 	maxBody();
 		Server getServer();
+		void 	reExecCgi();
 };	
 #endif

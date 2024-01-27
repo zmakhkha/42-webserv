@@ -147,8 +147,8 @@ void MServer::routin() {
 }
 
 void MServer::sendReesp(int index) {
-  if (reqsMap[index].cgiDone)
-    reqsMap[index].handleCgi(st_(""));
+  if (!reqsMap[index].cgiDone)
+    reqsMap[index].reExecCgi();
   if (!(!reqsMap[index].reading && reqsMap[index].upDone && reqsMap[index].cgiDone))
     return;
   if (!gotResp[index])
