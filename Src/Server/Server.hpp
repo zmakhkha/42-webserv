@@ -63,6 +63,7 @@ class MServer
 
 	public:
 		void handleClient(int clientFd);
+		void handleClient1(int clientFd);
 		void acceptClient(int index);
 		void cerror(const st_ &str);
 		void initServers();

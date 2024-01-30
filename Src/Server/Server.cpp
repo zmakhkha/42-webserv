@@ -5,7 +5,7 @@
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <unistd.h>
-#define MAX_SEND  1024
+#define MAX_SEND 1024
 
 MServer::~MServer() { delete[] fds; }
 MServer::MServer() : servers(Config::getConfig()) {
@@ -67,7 +67,7 @@ void MServer::acceptClient(int index) {
   int s = fds[index].fd;
 
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
-  if (!clientSocket) 
+  if (!clientSocket)
     return;
   if (clientSocket == -1) {
     return;
@@ -85,7 +85,7 @@ void MServer::acceptClient(int index) {
 void MServer::handleClient(int index) {
   char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
-  ssize_t re = recv(fds[index].fd, buffer, PAGE , 0);
+  ssize_t re = recv(fds[index].fd, buffer, PAGE, 0);
   if (re == -1) {
     std::cerr << "Error reading from client" << std::endl;
     deleteClient(index);
@@ -97,13 +97,29 @@ void MServer::handleClient(int index) {
   if (!reqsMap[index].reading && reqsMap[index].upDone)
     fds[index].events = POLLOUT;
 }
+void MServer::handleClient1(int index) {
+  
+  if (reqsMap[index].cgi && !reqsMap[index].tmp.cgiDone)
+  {
+  usleep(1000000);
+  std::cout << "men server : client(" << index << ")" <<std::endl;
+    reqsMap[index].reCheckCgi();
+  }
+
+  if (!reqsMap[index].reading && reqsMap[index].upDone)
+    fds[index].events = POLLOUT;
+  else
+    fds[index].events = POLLIN;
+}
 
 void MServer::routin() {
   int i;
   while (true) {
+    usleep(100000);
+    //std::cout << "-----------------------------------------------------"<< std::endl;
     int status = poll(fds, MAX_CLENTS, -1);
     if (status == -1) {
-      delete []fds;
+      delete[] fds;
       std::cerr << "Error in poll" << std::endl;
       exit(EXIT_FAILURE);
     }
@@ -119,11 +135,15 @@ void MServer::routin() {
         if (fds[i].revents & POLLIN) {
           handleClient(i);
         }
+        if (fds[i].events & POLLIN) {
+          handleClient1(i);
+        }
         if (fds[i].events & POLLOUT) {
           sendReesp(i);
         }
         if (fds[i].revents & POLLHUP) {
           deleteClient(i);
+          exit(0);
         }
       }
     }
@@ -131,10 +151,11 @@ void MServer::routin() {
 }
 
 void MServer::sendReesp(int index) {
+  std::cout << "--------------->|resp sent" <<std::endl;
   if (!gotResp[index])
     respMap[index].RetResponse(reqsMap[index]);
   gotResp[index] = true;
-  
+
   if (!respMap[index].headersent) {
     st_ res = respMap[index].getRet();
 
