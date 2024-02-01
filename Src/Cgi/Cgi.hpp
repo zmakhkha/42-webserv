@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ConfigFile/myconfig.hpp"
+#include "../Response/Response.hpp"
 
 #define BAD_GATEWAY 502
 #define phpPath "/Users/zmakhkha/Desktop/cgi/src/cgi/cgi-bin/php-cgi"
@@ -31,15 +32,10 @@ class Cgi{
 		std::string _postBody;
 		std::string _respPath;
 		Server srv;
-		pid_t pid;
-		bool forked;
-		bool status;
-		int result;
-		int stat;
+		Cgi();
 
 	public:
-		Cgi();
-		//Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv);
+		Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv);
 		Cgi(int var);
 		~Cgi();
 		void setHeaders(const std::map<std::string,const std::string> headers);
@@ -56,12 +52,5 @@ class Cgi{
 		std::string getQueryStr();
 		std::pair<st_, st_> getPathQuery(st_ uri);
 
-		void setUri(const st_& uri);
-        void setMethod(const st_& method);
-        void setLocation(int location);
-        void setCgiResponsePath(const st_& cgiRes);
-        void setHeaders(const std::map<st_, st_>& heads);
-        void setUploadPath(const st_& upPath);
-        void setServer(const Server& srv);
-		bool cgiDone;
+
 };

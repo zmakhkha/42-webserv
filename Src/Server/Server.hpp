@@ -35,7 +35,7 @@
 #include <poll.h>
 #include <fstream>
 
-#define MAX_CLENTS SOMAXCONN
+#define MAX_CLIENTS SOMAXCONN
 
 class request;
 class Response;
@@ -49,6 +49,7 @@ public:
     Client() : gotResp(false) {}
 };
 
+
 class MServer
 {
 	private:
@@ -59,11 +60,10 @@ class MServer
 		std::map<int, request> reqsMap;
 		std::map<int, Response> respMap;
 		std::map<int, bool> gotResp;
-		std::map<int, Client> clients;
+		std::map<int, Client> mapClients;
 
 	public:
 		void handleClient(int clientFd);
-		void handleClient1(int clientFd);
 		void acceptClient(int index);
 		void cerror(const st_ &str);
 		void initServers();

@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include <cstdlib>
 #include <deque>
 #include <fcntl.h>
 #include <sys/poll.h>
@@ -8,25 +7,30 @@
 #define MAX_SEND 1024
 
 MServer::~MServer() { delete[] fds; }
-MServer::MServer() : servers(Config::getConfig()) {
+MServer::MServer() : servers(Config::getConfig())
+{
   nserv = Config::getConfig().size();
-  fds = new pollfd[MAX_CLENTS];
-  for (int i = 0; i < MAX_CLENTS; i++) {
+  fds = new pollfd[MAX_CLIENTS];
+  for (int i = 0; i < MAX_CLIENTS; i++)
+  {
     fds[i].fd = -1;
     fds[i].events = POLLIN;
   }
 }
 
-void MServer::cerror(const st_ &str) {
+void MServer::cerror(const st_ &str)
+{
   std::cerr << str << std::endl;
   exit(EXIT_FAILURE);
 }
 
-void MServer::initServers() {
-  if (nserv >= MAX_CLENTS)
+void MServer::initServers()
+{
+  if (nserv >= MAX_CLIENTS)
     cerror("Unable to accept incoming clients, reduce the servers number !!");
   memset(fds, 0, sizeof(pollfd));
-  for (int i = 0; i < (int)nserv; i++) {
+  for (int i = 0; i < (int)nserv; i++)
+  {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
       cerror("Server: creating socket failed");
@@ -49,7 +53,7 @@ void MServer::initServers() {
     if (bind(sock, (struct sockaddr *)&addrserv, sizeof(addrserv)) != 0)
       cerror("Error: Could not bind socket");
 
-    if (listen(sock, 200) != 0)
+    if (listen(sock, MAX_CLIENTS) != 0)
       cerror("Error: Listen");
 
     if (fcntl(sock, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
@@ -62,14 +66,16 @@ void MServer::initServers() {
   }
 }
 
-void MServer::acceptClient(int index) {
+void MServer::acceptClient(int index)
+{
   int clientSocket;
   int s = fds[index].fd;
 
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
   if (!clientSocket)
     return;
-  if (clientSocket == -1) {
+  if (clientSocket == -1)
+  {
     return;
   }
   int clientIdx = getFreeClientIdx();
@@ -77,109 +83,116 @@ void MServer::acceptClient(int index) {
     return;
   fds[clientIdx].events = POLLIN;
   fds[clientIdx].fd = clientSocket;
-  reqsMap[clientIdx] = request();
-  respMap[clientIdx] = Response();
-  gotResp[clientIdx] = false;
+  // reqsMap[clientIdx] = request();
+  // respMap[clientIdx] = Response();
+  // gotResp[clientIdx] = false;
+  mapClients[index] = Client();
 }
 
-void MServer::handleClient(int index) {
+void MServer::handleClient(int index)
+{
   char buffer[PAGE];
   memset(buffer, 0, sizeof(buffer));
   ssize_t re = recv(fds[index].fd, buffer, PAGE, 0);
-  if (re == -1) {
+  if (re <= -1)
+  {
     std::cerr << "Error reading from client" << std::endl;
     deleteClient(index);
     return;
   }
-  if (re == 0)
-    return;
-  reqsMap[index].feedMe(st_(buffer, re));
-  if (!reqsMap[index].reading && reqsMap[index].upDone)
+  Client &refClient = mapClients[index];
+  refClient.req.feedMe(st_(buffer, re));
+  if (!refClient.req.reading && refClient.req.upDone)
     fds[index].events = POLLOUT;
-}
-void MServer::handleClient1(int index) {
-  
-  if (reqsMap[index].cgi && !reqsMap[index].tmp.cgiDone)
-  {
-  usleep(1000000);
-  std::cout << "men server : client(" << index << ")" <<std::endl;
-    reqsMap[index].reCheckCgi();
-  }
 
-  if (!reqsMap[index].reading && reqsMap[index].upDone)
-    fds[index].events = POLLOUT;
-  else
-    fds[index].events = POLLIN;
+  // reqsMap[index].feedMe(st_(buffer, re));
+  // if (!reqsMap[index].reading && reqsMap[index].upDone)
+  //   fds[index].events = POLLOUT;
 }
 
-void MServer::routin() {
+void MServer::routin()
+{
   int i;
-  while (true) {
-    usleep(100000);
-    //std::cout << "-----------------------------------------------------"<< std::endl;
-    int status = poll(fds, MAX_CLENTS, -1);
-    if (status == -1) {
-      delete[] fds;
+  while (true)
+  {
+    int status = poll(fds, MAX_CLIENTS, -1);
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
+    if (status == -1)
+    {
       std::cerr << "Error in poll" << std::endl;
-      exit(EXIT_FAILURE);
+      continue;
     }
     i = -1;
-    while (++i < (int)nserv) {
-      if (fds[i].revents & POLLIN) {
-        acceptClient(i);
-      }
-    }
-    i = nserv - 1;
-    while (++i < MAX_CLENTS) {
-      if (fds[i].fd != -1) {
-        if (fds[i].revents & POLLIN) {
+    while (++i < MAX_CLIENTS)
+    {
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      if (fds[i].revents & POLLIN)
+      {
+        if (i < (int)nserv)
+          acceptClient(i);
+        else
           handleClient(i);
-        }
-        if (fds[i].events & POLLIN) {
-          handleClient1(i);
-        }
-        if (fds[i].events & POLLOUT) {
-          sendReesp(i);
-        }
-        if (fds[i].revents & POLLHUP) {
-          deleteClient(i);
-          exit(0);
-        }
+      }
+      if (fds[i].events & POLLOUT)
+      {
+        sendReesp(i);
+      }
+      if (fds[i].revents & POLLHUP)
+      {
+        deleteClient(i);
       }
     }
   }
 }
 
-void MServer::sendReesp(int index) {
-  std::cout << "--------------->|resp sent" <<std::endl;
-  if (!gotResp[index])
-    respMap[index].RetResponse(reqsMap[index]);
-  gotResp[index] = true;
+void MServer::sendReesp(int index)
+{
+  Client &refClient = mapClients[index];
 
-  if (!respMap[index].headersent) {
-    st_ res = respMap[index].getRet();
+  if (!refClient.gotResp)
+    refClient.resp.RetResponse(refClient.req);
+  refClient.gotResp = true;
 
-    if (send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
+  // if (!gotResp[index])
+  //   respMap[index].RetResponse(reqsMap[index]);
+  // gotResp[index] = true;
+
+  if (!refClient.resp.headersent)
+  {
+    st_ res = refClient.resp.getRet();
+
+    ssize_t ret = send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
+    if (ret == -1)
       return (deleteClient(index), (void)0);
-    respMap[index].headersent = true;
+    if (ret == 0)
+      return;
+    refClient.resp.headersent = true;
   }
 
-  int fd = respMap[index].getFd();
-  if (respMap[index].headersent && fd == -1) {
+  int fd = refClient.resp.getFd();
+  if (refClient.resp.headersent && fd == -1)
+  {
     deleteClient(index);
     return;
   }
 
-  if (fd != -1) {
+  if (fd != -1)
+  {
     char *buff = new char[MAX_SEND];
-    respMap[index].sentData = read(fd, buff, MAX_SEND);
-    if (respMap[index].sentData == -1 || respMap[index].sentData == 0) {
+    refClient.resp.sentData = read(fd, buff, MAX_SEND);
+    if (refClient.resp.sentData == -1 || refClient.resp.sentData == 0)
+    {
       delete[] buff;
       close(fd);
       deleteClient(index);
-    } else {
-      if (send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
-        return (delete[] buff, close(fd), deleteClient(index), (void)0);
+    }
+    else
+    {
+      ssize_t ret = send(fds[index].fd, buff, refClient.resp.sentData, 0);
+      if (ret == -1)
+        return;
+      else if (ret == 0)
+        return;
       delete[] buff;
     }
     fds[index].events = POLLOUT;
@@ -189,40 +202,51 @@ void MServer::sendReesp(int index) {
   deleteClient(index);
 }
 
-void MServer::deleteClient(int index) {
-  bool keep = reqsMap[index].getConnection();
-  if (reqsMap.find(index) != reqsMap.end())
-    reqsMap.erase(index);
-  if (respMap.find(index) != respMap.end())
-    respMap.erase(index);
-  if (gotResp.find(index) != gotResp.end())
-    gotResp.erase(index);
+void MServer::deleteClient(int index)
+{
+  bool keep = mapClients[index].req.getConnection();
+  // if (reqsMap.find(index) != reqsMap.end())
+  //   reqsMap.erase(index);
+  // if (respMap.find(index) != respMap.end())
+  //   respMap.erase(index);
+  // if (gotResp.find(index) != gotResp.end())
+  //   gotResp.erase(index);
+  if (mapClients.find(index) != mapClients.end())
+    mapClients.erase(index);
 
-  if (!keep) {
+  if (!keep)
+  {
     close(fds[index].fd);
     fds[index].fd = -1;
     fds[index].events = 0;
-  } else {
-    reqsMap[index] = request();
-    respMap[index] = Response();
-    gotResp[index] = false;
+  }
+  else
+  {
+    // reqsMap[index] = request();
+    // respMap[index] = Response();
+    // gotResp[index] = false;
+    mapClients[index] = Client();
   }
 }
 
-int MServer::getFreeClientIdx() {
+int MServer::getFreeClientIdx()
+{
   int i = 0;
-  for (i = 0; i < MAX_CLENTS; i++) {
+  for (i = 0; i < MAX_CLIENTS; i++)
+  {
     if (fds[i].fd == -1)
       break;
   }
-  if (i == MAX_CLENTS) {
+  if (i == MAX_CLIENTS)
+  {
     std::cerr << "Unable to add another client !!" << std::endl;
     i = -1;
   }
   return i;
 }
 
-void MServer::Serving() {
+void MServer::Serving()
+{
   this->initServers();
   this->routin();
 }

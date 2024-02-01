@@ -3,32 +3,25 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/fcntl.h>
-#include <sys/signal.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 
-Cgi::~Cgi() {}
-
-Cgi::Cgi() {
-  forked = false;
-  status = true;
-  cgiDone = false;
-  pid = -1;
-  result = -1;
+Cgi::~Cgi()
+{
 }
 
-// Cgi::Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads,
-// st_ upPath, Server _srv) : _uri(uri), _methode(methode), _location(loc),
-// upload_path(upPath), _reqHeaders(heads), _respPath(cgiRes), srv(_srv)
-//{
-//   _CgiScriptPath = srv.location[_location].cgi.second;
-//   _isPost = _methode == "POST";
-// }
+Cgi::Cgi(st_ uri, st_ methode, int loc, st_ cgiRes, std::map<st_, st_> heads, st_ upPath, Server _srv) : _uri(uri), _methode(methode), _location(loc), upload_path(upPath), _reqHeaders(heads), _respPath(cgiRes), srv(_srv)
+{
+  _CgiScriptPath = srv.location[_location].cgi.second;
+  _isPost = _methode == "POST";
+}
 
-void Cgi::formatKey(std::string &key) {
+void Cgi::formatKey(std::string &key)
+{
   std::string tmp = "HTTP_";
-  for (size_t i = 0; i < key.length(); i++) {
+  for (size_t i = 0; i < key.length(); i++)
+  {
     if (key[i] == '-')
       key[i] = '_';
     key[i] = std::toupper(key[i]);
@@ -36,36 +29,46 @@ void Cgi::formatKey(std::string &key) {
   key = tmp + key;
 }
 
-void Cgi::formatHeaders() {
+void Cgi::formatHeaders()
+{
   std::string tmpKey;
   for (std::map<std::string, std::string>::iterator it = _reqHeaders.begin();
-       it != _reqHeaders.end(); it++) {
+       it != _reqHeaders.end(); it++)
+  {
     tmpKey = it->first;
     formatKey(tmpKey);
     _envLst.push_back(tmpKey + "=" + it->second + "");
   }
 }
 
-void Cgi::setExtraEnv() { formatHeaders(); }
+void Cgi::setExtraEnv()
+{
+  formatHeaders();
+}
 
-std::pair<st_, st_> Cgi::getPathQuery(st_ uri) {
+std::pair<st_, st_> Cgi::getPathQuery(st_ uri)
+{
   std::pair<st_, st_> res;
   size_t pos = uri.find("?");
-  if (pos != st_::npos) {
+  if (pos != st_::npos)
+  {
     res.first = uri.substr(0, pos);
     res.second = uri.substr(pos + 1, uri.length());
-  } else {
+  }
+  else
+  {
     res.first = uri;
     res.second = "";
   }
   return res;
 }
 
-void Cgi::setEnv() {
+void Cgi::setEnv()
+{
 
   st_ SERVER_SOFTWARE = "SA3DYA/V1.0";
   st_ SERVER_NAME = "SA3DYA";
-  st_ GATEWAY_INTERFACE = "SA3DYA_CGI/1.1";
+  st_ GATEWAY_INTERFACE = "SA3SYA_CGI/1.1";
 
   std::pair<st_, st_> tmp = getPathQuery(_uri);
   st_ root = srv.location[_location].root;
@@ -76,30 +79,28 @@ void Cgi::setEnv() {
   _envLst.push_back("SERVER_PROTOCOL=HTTP/1.1");
   _envLst.push_back("SERVER_PORT=" + srv.listen.second + "");
   _envLst.push_back("REQUEST_METHOD=" + _methode + "");
-  _envLst.push_back("PATH_INFO=" + srv.location[_location].prefix +
-                    tmp.first.substr(pref_len) + "");
-  _envLst.push_back("SCRIPT_NAME=" + srv.location[_location].prefix +
-                    tmp.first.substr(pref_len) + "");
-  _envLst.push_back("PATH_TRANSLATED=" + root + "/" +
-                    tmp.first.substr(pref_len) + "");
+  _envLst.push_back("PATH_INFO=" + srv.location[_location].prefix + tmp.first.substr(pref_len) + "");
+  _envLst.push_back("SCRIPT_NAME=" + srv.location[_location].prefix + tmp.first.substr(pref_len) + "");
+  _envLst.push_back("PATH_TRANSLATED=" + root + "/" + tmp.first.substr(pref_len) + "");
   _scriptPath = root + "/" + tmp.first.substr(pref_len);
   _envLst.push_back("QUERY_STRING=" + tmp.second + "");
-  if (access((root + "/" + tmp.first.substr(pref_len) + "").c_str(), F_OK) ==
-      -1)
+  if (access((root + "/" + tmp.first.substr(pref_len) + "").c_str(), F_OK) == -1)
     throw 404;
   _envLst.push_back("UPLOAD_DIRECTORY=" + st_(upload_path));
   _envLst.push_back("REDIRECT_STATUS=200");
   this->setUnique();
 }
 
-void Cgi::setUnique() {
+void Cgi::setUnique()
+{
   _envLst.push_back("CONTENT_LENGTH=" + _reqHeaders["content-length"]);
   _envLst.push_back("CONTENT_TYPE=" + _reqHeaders["content-type"]);
   _reqHeaders.erase(_reqHeaders.find("content-length"));
   _reqHeaders.erase(_reqHeaders.find("content-type"));
 }
 
-void Cgi::excecCgi(std::string bodyPath) {
+void Cgi::excecCgi(std::string bodyPath)
+{
   this->_postBody = bodyPath;
   _isPost = bodyPath.length() != 0;
   setEnv();
@@ -107,95 +108,71 @@ void Cgi::excecCgi(std::string bodyPath) {
   execute();
 }
 
-void Cgi::execute() {
+void Cgi::execute()
+{
   if (!_scriptPath.length())
     throw(501);
-  pid = fork();
-  if (!forked) {
-    forked = true;
-
-    if (pid == 0) {
-      std::cout << getpid() << std::endl;
-      char *envp[_envLst.size() + 1];
-      for (std::size_t i = 0; i < _envLst.size(); ++i) {
-        envp[i] = const_cast<char *>(_envLst[i].c_str());
-      }
-      envp[_envLst.size()] = NULL;
-      if (access(_CgiScriptPath.c_str(), F_OK) != 0) {
-        std::cerr << "Cgi::execute : access Failed" << std::endl;
-        exit(1);
-      }
-      char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
-                      const_cast<char *>(_scriptPath.c_str()), NULL};
-      int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
-      if (fd < 0) {
-        status = false;
-        std::cerr << "Cgi::execute : open Faied" << std::endl;
-        exit(1);
-      }
-      std::cout << "respPath ------>|" << _respPath << std::endl;
-      FILE *out = freopen(_respPath.c_str(), "w", stdout);
-      if (_isPost) {
-        FILE *in = freopen(_postBody.c_str(), "r", stdin);
-        if (in == nullptr) {
-          std::cerr << "Cgi::execute : freopen Faied" << std::endl;
-          status = false;
-          exit(1);
-        }
-      }
-      if (out == nullptr) {
-        status = false;
+  pid_t pid = fork();
+  bool status = true;
+  if (pid == 0)
+  {
+    char *envp[_envLst.size() + 1];
+    for (std::size_t i = 0; i < _envLst.size(); ++i)
+    {
+      envp[i] = const_cast<char *>(_envLst[i].c_str());
+    }
+    envp[_envLst.size()] = NULL;
+    if (access(_CgiScriptPath.c_str(), F_OK) != 0)
+    {
+      std::cerr << "Cgi::execute : access Failed" << std::endl;
+      throw 502;
+    }
+    char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
+                    const_cast<char *>(_scriptPath.c_str()), NULL};
+    int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
+    if (fd < 0)
+    {
+      status = false;
+      std::cerr << "Cgi::execute : open Faied" << std::endl;
+    }
+    FILE *out = freopen(_respPath.c_str(), "w", stdout);
+    if (_isPost)
+    {
+      FILE *in = freopen(_postBody.c_str(), "r", stdin);
+      if (in == nullptr)
+      {
         std::cerr << "Cgi::execute : freopen Faied" << std::endl;
-        exit(1);
+        status = false;
       }
-      alarm(2);
-      if (execve(argv[0], argv, envp) == -1) {
-        std::cerr << "Cgi::execute : execve Faied" << std::endl;
-        exit(1);
-      }
-      std::cout << "haana" << std::endl;
-      exit(0);
-    } else if (pid < 0) {
-      std::cerr << "Cgi::execute : fork Faied" << std::endl;
+    }
+    if (out == nullptr)
+    {
+      status = false;
+      std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+    }
+    alarm(6);
+    if (execve(argv[0], argv, envp) == -1)
+    {
+      std::cerr << "Cgi::execute : execve Faied" << std::endl;
+      throw 502;
     }
   }
-   result = waitpid(-1, &stat, WNOHANG);
-  
-  if (!result)
-    std::cout << "CHILD STILL RUNNING !!" << std::endl;
-  else if (result < 0) {
-    cgiDone = true;
-    throw 500;
-  } else {
-    std::cout << "------------------>[" << pid << std::endl;
-    cgiDone = true;
+  else if (pid > 0)
+  {
+    int stat;
+    waitpid(pid, &stat, 0);
     if (WEXITSTATUS(stat) != 0 || !status)
       throw 502;
-    else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
+    else if (WIFSIGNALED(stat))
       throw 504;
-    else if (WEXITED && WIFSIGNALED(stat))
-      throw 500;
+  }
+  else
+  {
+    std::cerr << "Cgi::execute : fork Faied" << std::endl;
   }
 }
 
-st_ Cgi::getRespPath(void) const { return this->_respPath; }
-
-void Cgi::setUri(const st_ &uri) { _uri = uri; }
-
-void Cgi::setMethod(const st_ &method) {
-  _methode = method;
-  _isPost = _methode == "POST";
-}
-
-void Cgi::setLocation(int location) { _location = location; }
-
-void Cgi::setCgiResponsePath(const st_ &cgiRes) { _respPath = cgiRes; }
-
-void Cgi::setHeaders(const std::map<st_, st_> &heads) { _reqHeaders = heads; }
-
-void Cgi::setUploadPath(const st_ &upPath) { upload_path = upPath; }
-
-void Cgi::setServer(const Server &srv) {
-  this->srv = srv;
-  _CgiScriptPath = srv.location[_location].cgi.second;
+st_ Cgi::getRespPath(void) const
+{
+  return this->_respPath;
 }
