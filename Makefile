@@ -1,5 +1,5 @@
 NAME		= webserv
-CC			= c++ -g
+CC			= c++ -g -fsanitize=address
 FLAGS		= -Wall -Wextra -Werror  -std=c++98
 OBJDIR 		= .obj
 

@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <cstdlib>
 #include <deque>
 #include <fcntl.h>
 #include <sys/poll.h>
@@ -72,20 +73,16 @@ void MServer::acceptClient(int index)
   int s = fds[index].fd;
 
   clientSocket = accept(s, (struct sockaddr *)0, (socklen_t *)0);
-  if (!clientSocket)
+  if (clientSocket <= 0)
     return;
-  if (clientSocket == -1)
-  {
+  if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
     return;
-  }
+
   int clientIdx = getFreeClientIdx();
   if (clientIdx == -1)
     return;
   fds[clientIdx].events = POLLIN;
   fds[clientIdx].fd = clientSocket;
-  // reqsMap[clientIdx] = request();
-  // respMap[clientIdx] = Response();
-  // gotResp[clientIdx] = false;
   mapClients[index] = Client();
 }
 
@@ -102,12 +99,12 @@ void MServer::handleClient(int index)
   }
   Client &refClient = mapClients[index];
   refClient.req.feedMe(st_(buffer, re));
+
+  if (refClient.req.cgi && !refClient.req.tmp.cgiDone)
+    refClient.req.reCheckCgi();
+  std::cout << __FILE__ << " " << __LINE__ << std::endl;
   if (!refClient.req.reading && refClient.req.upDone)
     fds[index].events = POLLOUT;
-
-  // reqsMap[index].feedMe(st_(buffer, re));
-  // if (!reqsMap[index].reading && reqsMap[index].upDone)
-  //   fds[index].events = POLLOUT;
 }
 
 void MServer::routin()
@@ -120,12 +117,12 @@ void MServer::routin()
     if (status == -1)
     {
       std::cerr << "Error in poll" << std::endl;
-      continue;
+      exit(EXIT_FAILURE);
     }
     i = -1;
     while (++i < MAX_CLIENTS)
     {
-    std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      std::cout << __FILE__ << " i = " << i << std::endl;
       if (fds[i].revents & POLLIN)
       {
         if (i < (int)nserv)
@@ -133,7 +130,7 @@ void MServer::routin()
         else
           handleClient(i);
       }
-      if (fds[i].events & POLLOUT)
+      if (fds[i].revents & POLLOUT)
       {
         sendReesp(i);
       }
@@ -152,10 +149,6 @@ void MServer::sendReesp(int index)
   if (!refClient.gotResp)
     refClient.resp.RetResponse(refClient.req);
   refClient.gotResp = true;
-
-  // if (!gotResp[index])
-  //   respMap[index].RetResponse(reqsMap[index]);
-  // gotResp[index] = true;
 
   if (!refClient.resp.headersent)
   {
@@ -205,12 +198,6 @@ void MServer::sendReesp(int index)
 void MServer::deleteClient(int index)
 {
   bool keep = mapClients[index].req.getConnection();
-  // if (reqsMap.find(index) != reqsMap.end())
-  //   reqsMap.erase(index);
-  // if (respMap.find(index) != respMap.end())
-  //   respMap.erase(index);
-  // if (gotResp.find(index) != gotResp.end())
-  //   gotResp.erase(index);
   if (mapClients.find(index) != mapClients.end())
     mapClients.erase(index);
 
@@ -221,12 +208,8 @@ void MServer::deleteClient(int index)
     fds[index].events = 0;
   }
   else
-  {
-    // reqsMap[index] = request();
-    // respMap[index] = Response();
-    // gotResp[index] = false;
-    mapClients[index] = Client();
-  }
+    return;
+  mapClients[index] = Client();
 }
 
 int MServer::getFreeClientIdx()

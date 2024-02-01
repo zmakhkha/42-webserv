@@ -108,71 +108,106 @@ void Cgi::excecCgi(std::string bodyPath)
   execute();
 }
 
+Cgi::Cgi()
+{
+  forked = false;
+  status = true;
+}
+
 void Cgi::execute()
 {
   if (!_scriptPath.length())
     throw(501);
-  pid_t pid = fork();
-  bool status = true;
-  if (pid == 0)
+  if (!forked)
   {
-    char *envp[_envLst.size() + 1];
-    for (std::size_t i = 0; i < _envLst.size(); ++i)
+    pid = fork();
+    status = true;
+    if (pid == 0)
     {
-      envp[i] = const_cast<char *>(_envLst[i].c_str());
-    }
-    envp[_envLst.size()] = NULL;
-    if (access(_CgiScriptPath.c_str(), F_OK) != 0)
-    {
-      std::cerr << "Cgi::execute : access Failed" << std::endl;
-      throw 502;
-    }
-    char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
-                    const_cast<char *>(_scriptPath.c_str()), NULL};
-    int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
-    if (fd < 0)
-    {
-      status = false;
-      std::cerr << "Cgi::execute : open Faied" << std::endl;
-    }
-    FILE *out = freopen(_respPath.c_str(), "w", stdout);
-    if (_isPost)
-    {
-      FILE *in = freopen(_postBody.c_str(), "r", stdin);
-      if (in == nullptr)
+      char *envp[_envLst.size() + 1];
+      for (std::size_t i = 0; i < _envLst.size(); ++i)
       {
-        std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+        envp[i] = const_cast<char *>(_envLst[i].c_str());
+      }
+      envp[_envLst.size()] = NULL;
+      if (access(_CgiScriptPath.c_str(), F_OK) != 0)
+      {
+        std::cerr << "Cgi::execute : access Failed" << std::endl;
+        exit(1);
+      }
+      char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
+                      const_cast<char *>(_scriptPath.c_str()), NULL};
+      int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
+      if (fd < 0)
+      {
         status = false;
+        std::cerr << "Cgi::execute : open Faied" << std::endl;
+        exit(1);
+      }
+      FILE *out = freopen(_respPath.c_str(), "w", stdout);
+      if (_isPost)
+      {
+        FILE *in = freopen(_postBody.c_str(), "r", stdin);
+        if (in == nullptr)
+        {
+          std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+          status = false;
+          exit(1);
+        }
+      }
+      if (out == nullptr)
+      {
+        status = false;
+        std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+        exit(1);
+      }
+      alarm(6);
+      if (execve(argv[0], argv, envp) == -1)
+      {
+        std::cerr << "Cgi::execute : execve Faied" << std::endl;
+        exit(1);
       }
     }
-    if (out == nullptr)
+    else if (pid < 0)
     {
-      status = false;
-      std::cerr << "Cgi::execute : freopen Faied" << std::endl;
-    }
-    alarm(6);
-    if (execve(argv[0], argv, envp) == -1)
-    {
-      std::cerr << "Cgi::execute : execve Faied" << std::endl;
-      throw 502;
+      std::cerr << "Cgi::execute : fork Faied" << std::endl;
+      throw 500;
     }
   }
-  else if (pid > 0)
+  if (pid > 0)
   {
     int stat;
-    waitpid(pid, &stat, 0);
-    if (WEXITSTATUS(stat) != 0 || !status)
+    waitpid(pid, &stat, WNOHANG);
+    if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
       throw 502;
-    else if (WIFSIGNALED(stat))
+    else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
       throw 504;
-  }
-  else
-  {
-    std::cerr << "Cgi::execute : fork Faied" << std::endl;
+    else if (WEXITED && WIFSIGNALED(stat))
+      throw 502;
   }
 }
 
 st_ Cgi::getRespPath(void) const
 {
   return this->_respPath;
+}
+
+void Cgi::setUri(const st_ &uri) { _uri = uri; }
+
+void Cgi::setMethod(const st_ &method) {
+  _methode = method;
+  _isPost = _methode == "POST";
+}
+
+void Cgi::setLocation(int location) { _location = location; }
+
+void Cgi::setCgiResponsePath(const st_ &cgiRes) { _respPath = cgiRes; }
+
+void Cgi::setHeaders(const std::map<st_, st_> &heads) { _reqHeaders = heads; }
+
+void Cgi::setUploadPath(const st_ &upPath) { upload_path = upPath; }
+
+void Cgi::setServer(const Server &srv) {
+  this->srv = srv;
+  _CgiScriptPath = srv.location[_location].cgi.second;
 }

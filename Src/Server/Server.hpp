@@ -61,6 +61,7 @@ class MServer
 		std::map<int, Response> respMap;
 		std::map<int, bool> gotResp;
 		std::map<int, Client> mapClients;
+		int pollStat;
 
 	public:
 		void handleClient(int clientFd);

@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <vector>
 
-
 void to_lower(st_ &key)
 {
   for (size_t i = 0; i < key.length(); i++)
@@ -43,7 +42,8 @@ void request::isItinConfigFile(st_ URI)
   std::sort(prefix.begin(), prefix.end());
   for (int idx = prefix.size() - 1; idx >= 0; idx--)
   {
-    if (prefix[idx] + "/" == URI.substr(0, prefix[idx].length() + 1)) {
+    if (prefix[idx] + "/" == URI.substr(0, prefix[idx].length() + 1))
+    {
       for (int i = 0; i < (int)locations.size(); i++)
         if (locations[i].prefix == prefix[idx])
           locate = i;
@@ -56,8 +56,8 @@ void request::isItinConfigFile(st_ URI)
     throw 404;
 }
 request::request(st_ request)
-    : parseCgi(false), Parsed(true),
-      chunkedHeaders(false), isChunked(false), cgi(false)
+    : parseCgi(false), Parsed(true), chunkedHeaders(false), isChunked(false),
+      cgi(false)
 {
   try
   {
@@ -115,9 +115,13 @@ int request::CheckForBody()
   len = headers["content-length"];
   std::stringstream ss(len);
   ss >> contentL_;
-  if ((headers["content-length"].empty() || contentL_ <= 0) && getMethod_() == "POST")
+  if ((headers["content-length"].empty() || contentL_ <= 0) &&
+      getMethod_() == "POST")
     throw 400;
-  (!headers["transfer-encoding"].empty() && headers["transfer-encoding"] != "chunked" && getMethod_() == "POST") ? throw 501 : contentL_ = 0;
+  (!headers["transfer-encoding"].empty() &&
+   headers["transfer-encoding"] != "chunked" && getMethod_() == "POST")
+      ? throw 501
+      : contentL_ = 0;
   return 1;
 }
 
@@ -183,6 +187,7 @@ bool request::checkURI(st_ URI)
 
 request::~request(void)
 {
+  // std::cout << "destructooooooooooooooooooooooooooooooooooooooooor" << std::endl;
   close(tmpBodyFd);
   FILE *file1 = fopen(cgiResStr, "w");
   if (file1 != nullptr)
@@ -254,7 +259,8 @@ void request::parseboundary(std::string chunk)
   size_t pos = chunk.find("filename=\"");
   if (pos != std::string::npos)
   {
-    std::string file = chunk.substr(pos + 10, (chunk.find("\"\r\n") - pos - 10));
+    std::string file =
+        chunk.substr(pos + 10, (chunk.find("\"\r\n") - pos - 10));
     if (fd > 0)
       close(fd);
     std::string filename = upPath + file;
@@ -368,7 +374,8 @@ void request::parseMe(st_ request)
   delete_ = request.find("\r\n");
   if (delete_ != std::string::npos)
     setVersion(request.substr(0, delete_));
-  if (getMethod_() != "POST" && getMethod_() != "GET" && getMethod_() != "DELETE")
+  if (getMethod_() != "POST" && getMethod_() != "GET" &&
+      getMethod_() != "DELETE")
     throw 501;
   if (getVersion() != "HTTP/1.1")
     throw 505;
@@ -411,7 +418,9 @@ void request::fillCgiBodyNb(const st_ &data)
   int fd = open(cgiBodyPath.c_str(), O_APPEND | O_RDWR | O_CREAT, 0644);
   if (fd < 0)
   {
-    std::cerr << "" <<  st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str() << std::endl;
+    std::cerr << ""
+              << st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str()
+              << std::endl;
     return (reading = false, void(0));
   }
   rd = write(fd, page.c_str(), page.length());
@@ -430,7 +439,8 @@ void request::fillCgiBody(const st_ &data)
   int fd = open(cgiBodyPath.c_str(), O_APPEND | O_RDWR | O_CREAT, 0644);
   if (fd < 0)
   {
-    std::cerr << st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str() << std::endl;
+    std::cerr << st_(st_("Could not create : ") + cgiBodyPath.c_str()).c_str()
+              << std::endl;
     return (reading = false, void(0));
   }
   write(fd, page.c_str(), page.length());
@@ -448,15 +458,22 @@ void request::handleCgi(const st_ &data)
   st_ str = data;
   if (Serv.location[locate].prefix != "/")
     root = Serv.location[locate].root +
-           getURI().substr(
-               Serv.location[locate].prefix.length()); // change
+           getURI().substr(Serv.location[locate].prefix.length()); // change
   else
     root = Serv.location[locate].root + getURI();
   if (firstParse == false)
     parseMe(data);
   if (cgi)
   {
-    Cgi tmp(getURI(), getMethod_(), locate, cgiResult, getVector(), upPath, Serv);
+    // Cgi tmp(getURI(), getMethod_(), locate, cgiResult, getVector(), upPath,
+    // Serv);
+    tmp.setUri(getURI());
+    tmp.setMethod(getMethod_());
+    tmp.setLocation(locate);
+    tmp.setCgiResponsePath(cgiResult);
+    tmp.setHeaders(getVector());
+    tmp.setUploadPath(upPath);
+    tmp.setServer(Serv);
     if (getMethod_() == "POST" && !cgiReady)
     {
       return;
@@ -469,8 +486,11 @@ void request::handleCgi(const st_ &data)
     if (cgiReady)
     {
       tmp.excecCgi(cgiBodyPath);
-      reading = 0;
-      upDone = true;
+      if (tmp.cgiDone)
+      {
+        reading = 0;
+        upDone = true;
+      }
     }
   }
   else
@@ -532,7 +552,8 @@ void request::parseChunked(std::string &page)
     page2 = page;
   st_ data = page1 + page2;
 
-  while (data.find("\r\n") != st_::npos && reading && chunklen < (int)data.length())
+  while (data.find("\r\n") != st_::npos && reading &&
+         chunklen < (int)data.length())
   {
     chunkData(data);
   }
@@ -540,12 +561,11 @@ void request::parseChunked(std::string &page)
   page2 = "";
 }
 
-
 void request::feedMe(const st_ &data)
 {
   try
   {
-    st_ str(data.c_str(),   data.length());
+    st_ str(data.c_str(), data.length());
     cgiResult = cgiResStr;
     if (firstParse == false)
       parseMe(data);
@@ -572,7 +592,6 @@ void request::feedMe(const st_ &data)
         cgiReady = 1;
       if (cgiReady)
         handleCgi(data);
-      upDone = true;
     }
     else
     {
@@ -628,7 +647,21 @@ bool request::maxBody()
   return (size <= body_size);
 }
 
-Server request::getServer()
+Server request::getServer() { return this->Serv; }
+
+void request::reCheckCgi()
 {
-  return this->Serv;
+  try
+  {
+    std::cout  << __FUNCTION__ << __FILE__ << __LINE__ << "------>|" << this << "|<-------" << std::endl;
+    tmp.execute();
+    if (tmp.cgiDone)
+    {
+      reading = 0;
+      upDone = true;
+    }
+  }
+  catch (int _code)
+  {
+  }
 }
