@@ -25,6 +25,7 @@
 #include <vector>
 #include <cstddef>
 #include <sys/fcntl.h>
+#include <sys/poll.h>
 
 #define PAGE 65536
 #define  K 1024
@@ -40,6 +41,8 @@ class MServer;
 class request {
 	private :
 		Config	get_;
+		pollfd* clientFdPtr;
+
 		Map headers;
 		bool parseCgi;
         bool firstParse;
@@ -117,5 +120,8 @@ class request {
 		Server getServer();
 		Cgi tmp;
 		void reCheckCgi();
+		void setPollFdPtr(pollfd* fdPtr) {
+        clientFdPtr = fdPtr;
+    }
 };	
 #endif

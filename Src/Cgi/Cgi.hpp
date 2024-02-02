@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ConfigFile/myconfig.hpp"
+#include "sys/poll.h"
 
 #define BAD_GATEWAY 502
 #define phpPath "/Users/zmakhkha/Desktop/cgi/src/cgi/cgi-bin/php-cgi"
@@ -14,6 +15,8 @@ private:
 	st_ SERVER_SOFTWARE;
 	st_ SERVER_NAME;
 	st_ GATEWAY_INTERFACE;
+	pollfd* clientFdPtr;
+
 
 	st_ _uri, _methode;
 	int _location;
@@ -63,4 +66,7 @@ public:
 	void setUploadPath(const st_ &upPath);
 	void setServer(const Server &srv);
 	bool cgiDone;
+	void setPollFdPtr(pollfd* fdPtr) {
+        clientFdPtr = fdPtr;
+    }
 };

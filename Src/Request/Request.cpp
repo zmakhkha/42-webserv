@@ -474,6 +474,7 @@ void request::handleCgi(const st_ &data)
     tmp.setHeaders(getVector());
     tmp.setUploadPath(upPath);
     tmp.setServer(Serv);
+    tmp.setPollFdPtr(clientFdPtr);
     if (getMethod_() == "POST" && !cgiReady)
     {
       return;

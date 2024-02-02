@@ -83,7 +83,8 @@ void MServer::acceptClient(int index)
     return;
   fds[clientIdx].events = POLLIN;
   fds[clientIdx].fd = clientSocket;
-  mapClients[index] = Client();
+  //mapClients[index] = Client();
+  mapClients[index] = Client(&fds[index]);
 }
 
 void MServer::handleClient(int index)
@@ -112,6 +113,7 @@ void MServer::routin()
   int i;
   while (true)
   {
+    std::cout << __FILE__ << " " << __LINE__ << std::endl;
     int status = poll(fds, MAX_CLIENTS, -1);
     std::cout << __FILE__ << " " << __LINE__ << std::endl;
     if (status == -1)

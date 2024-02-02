@@ -45,8 +45,10 @@ public:
     request req;
     Response resp;
     bool gotResp;
+	pollfd* clientFdPtr;
 
     Client() : gotResp(false) {}
+	Client(pollfd* fdPtr) : gotResp(false), clientFdPtr(fdPtr) {req.setPollFdPtr(clientFdPtr);}
 };
 
 

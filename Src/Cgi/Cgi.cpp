@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/fcntl.h>
+#include <sys/poll.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -171,12 +172,14 @@ void Cgi::execute()
     else if (pid < 0)
     {
       std::cerr << "Cgi::execute : fork Faied" << std::endl;
+      clientFdPtr->events = POLLOUT;
       throw 500;
     }
   }
   if (pid > 0)
   {
     int stat;
+    clientFdPtr->events = POLLOUT;
     waitpid(pid, &stat, WNOHANG);
     if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
       throw 502;
