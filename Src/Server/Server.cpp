@@ -83,7 +83,6 @@ void MServer::acceptClient(int index)
   fds[clientIdx].events = POLLIN;
   fds[clientIdx].fd = clientSocket;
   reqsMap[clientIdx] = request();
-  reqsMap[clientIdx].setPollFdPtr(&fds[clientIdx]);
   respMap[clientIdx] = Response();
   gotResp[clientIdx] = false;
 }
@@ -114,8 +113,8 @@ void MServer::routin()
     int status = poll(fds, MAX_CLIENTS, -1);
     if (status == -1)
     {
-      std::cerr << "Error in poll" << std::endl;
-      continue;
+      std::cerr << __FUNCTION__ << __LINE__ << " Error in poll" << std::endl;
+      exit(EXIT_FAILURE);
     }
     i = -1;
     while (++i < (int)nserv)
@@ -129,7 +128,10 @@ void MServer::routin()
       if (fds[i].fd != -1)
       {
         if (fds[i].revents & POLLIN)
+        {
+          // std::cout << "[client connected]" << std::endl;
           handleClient(i);
+        }
         if (fds[i].events & POLLOUT)
           sendReesp(i);
         if (fds[i].revents & POLLHUP)
@@ -149,8 +151,11 @@ void MServer::sendReesp(int index)
   {
     st_ res = respMap[index].getRet();
 
-    if (send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0) == -1)
+    ssize_t re = send(fds[index].fd, res.c_str(), strlen(res.c_str()), 0);
+    if (re == -1)
       return (deleteClient(index), (void)0);
+    if (!re)
+      return;
     respMap[index].headersent = true;
   }
 
@@ -173,8 +178,11 @@ void MServer::sendReesp(int index)
     }
     else
     {
-      if (send(fds[index].fd, buff, respMap[index].sentData, 0) == -1)
+      ssize_t re = send(fds[index].fd, buff, respMap[index].sentData, 0);
+      if (re == -1)
         return (delete[] buff, close(fd), deleteClient(index), (void)0);
+      if (!re)
+        return;
       delete[] buff;
     }
     fds[index].events = POLLOUT;

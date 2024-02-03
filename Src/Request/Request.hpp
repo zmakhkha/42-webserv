@@ -40,7 +40,7 @@ class MServer;
 class request
 {
 private:
-	pollfd *clientFdPtr;
+	// pollfd *clientFdPtr;
 	Config get_;
 	Map headers;
 	bool parseCgi;
@@ -117,9 +117,9 @@ public:
 	void chunkData(std::string &data);
 	bool maxBody();
 	Server getServer();
-	void setPollFdPtr(pollfd *fdPtr)
-	{
-		clientFdPtr = fdPtr;
-	}
+	// void setPollFdPtr(pollfd *fdPtr)
+	// {
+	// 	clientFdPtr = fdPtr;
+	// }
 };
 #endif

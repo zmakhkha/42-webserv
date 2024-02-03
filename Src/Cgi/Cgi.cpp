@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/fcntl.h>
-#include <sys/poll.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -109,141 +108,75 @@ void Cgi::excecCgi(std::string bodyPath)
   execute();
 }
 
-Cgi::Cgi()
-{
-  forked = false;
-  status = true;
-}
-
 void Cgi::execute()
 {
   if (!_scriptPath.length())
     throw(501);
-  if (!forked)
+  pid_t pid = fork();
+  bool status = true;
+  if (pid == 0)
   {
-    pid = fork();
-    status = true;
-    if (pid == 0)
+    char *envp[_envLst.size() + 1];
+    for (std::size_t i = 0; i < _envLst.size(); ++i)
     {
-      char *envp[_envLst.size() + 1];
-      for (std::size_t i = 0; i < _envLst.size(); ++i)
-      {
-        envp[i] = const_cast<char *>(_envLst[i].c_str());
-      }
-      envp[_envLst.size()] = NULL;
-      if (access(_CgiScriptPath.c_str(), F_OK) != 0)
-      {
-        std::cerr << "Cgi::execute : access Failed" << std::endl;
-        clientFdPtr->events = POLLOUT;
-        exit(1);
-      }
-      char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
-                      const_cast<char *>(_scriptPath.c_str()), NULL};
-      int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
-      if (fd < 0)
-      {
-        status = false;
-        std::cerr << "Cgi::execute : open Faied" << std::endl;
-        clientFdPtr->events = POLLOUT;
-        exit(1);
-      }
-      FILE *out = freopen(_respPath.c_str(), "w", stdout);
-      if (_isPost)
-      {
-        FILE *in = freopen(_postBody.c_str(), "r", stdin);
-        if (in == nullptr)
-        {
-          std::cerr << "Cgi::execute : freopen Faied" << std::endl;
-          status = false;
-          clientFdPtr->events = POLLOUT;
-          exit(1);
-        }
-      }
-      if (out == nullptr)
-      {
-        status = false;
-        std::cerr << "Cgi::execute : freopen Faied" << std::endl;
-        clientFdPtr->events = POLLOUT;
-        exit(1);
-      }
-      alarm(2);
-      if (execve(argv[0], argv, envp) == -1)
-      {
-        std::cerr << "Cgi::execute : execve Faied" << std::endl;
-        clientFdPtr->events = POLLOUT;
-        exit(1);
-      }
-      clientFdPtr->events = POLLOUT;
-      exit(0);
+      envp[i] = const_cast<char *>(_envLst[i].c_str());
     }
-    else if (pid < 0)
+    envp[_envLst.size()] = NULL;
+    if (access(_CgiScriptPath.c_str(), F_OK) != 0)
     {
-      std::cerr << "Cgi::execute : fork Faied" << std::endl;
-      clientFdPtr->events = POLLOUT;
-      throw 500;
+      perror("access : ");
+      exit(1);
+    }
+    char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
+                    const_cast<char *>(_scriptPath.c_str()), NULL};
+    int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
+    if (fd < 0)
+    {
+      status = false;
+      perror("open : ");
+    }
+    FILE *out = freopen(_respPath.c_str(), "w", stdout);
+    if (_isPost)
+    {
+      FILE *in = freopen(_postBody.c_str(), "r", stdin);
+      if (in == nullptr)
+      {
+        perror("freopen : ");
+        status = false;
+      }
+    }
+    if (out == nullptr)
+    {
+      status = false;
+      perror("freopen : ");
+    }
+    alarm(2);
+    if (execve(argv[0], argv, envp) == -1)
+    {
+      perror("execve");
+      exit(1);
     }
   }
-  if (pid > 0)
+  else if (pid > 0)
   {
     int stat;
-    int child_pid = waitpid(pid, &stat, 0);
-    if (child_pid == pid)
-    {
-      this->cgiDone = true;
-      if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
-      {
-        std::cout << "------->| " << __LINE__ << std::endl;
-        // clientFdPtr->events = POLLOUT;
-        throw 502;
-      }
-      else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
-      {
-        clientFdPtr->events = POLLOUT;
-        throw 504;
-      }
-      else if (WEXITED && WIFSIGNALED(stat))
-      {
-        clientFdPtr->events = POLLOUT;
-        throw 500;
-      }
-    }
-    else if (child_pid < 0)
-    {
-      this->cgiDone = true;
-      clientFdPtr->events = POLLOUT;
-      throw 500;
-    }
-    else if (!child_pid)
-    {
-      std::cout << "---->| MAZAL|" << std::endl;
-      return;
-    }
+    waitpid(pid, &stat, WNOHANG);
+
+    if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
+      throw 502;
+    else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
+      throw 504;
+    else if (WEXITED && WIFSIGNALED(stat))
+      throw 502;
+  }
+  else
+  {
+    std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << " :fork failed" << std::endl;
+    throw 500;
   }
 }
 
 st_ Cgi::getRespPath(void) const
 {
   return this->_respPath;
-}
-
-void Cgi::setUri(const st_ &uri) { _uri = uri; }
-
-void Cgi::setMethod(const st_ &method)
-{
-  _methode = method;
-  _isPost = _methode == "POST";
-}
-
-void Cgi::setLocation(int location) { _location = location; }
-
-void Cgi::setCgiResponsePath(const st_ &cgiRes) { _respPath = cgiRes; }
-
-void Cgi::setHeaders(const std::map<st_, st_> &heads) { _reqHeaders = heads; }
-
-void Cgi::setUploadPath(const st_ &upPath) { upload_path = upPath; }
-
-void Cgi::setServer(const Server &srv)
-{
-  this->srv = srv;
-  _CgiScriptPath = srv.location[_location].cgi.second;
 }
