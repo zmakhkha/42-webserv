@@ -134,6 +134,7 @@ void Cgi::execute()
       if (access(_CgiScriptPath.c_str(), F_OK) != 0)
       {
         std::cerr << "Cgi::execute : access Failed" << std::endl;
+        clientFdPtr->events = POLLOUT;
         exit(1);
       }
       char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
@@ -143,6 +144,7 @@ void Cgi::execute()
       {
         status = false;
         std::cerr << "Cgi::execute : open Faied" << std::endl;
+        clientFdPtr->events = POLLOUT;
         exit(1);
       }
       FILE *out = freopen(_respPath.c_str(), "w", stdout);
@@ -153,6 +155,7 @@ void Cgi::execute()
         {
           std::cerr << "Cgi::execute : freopen Faied" << std::endl;
           status = false;
+          clientFdPtr->events = POLLOUT;
           exit(1);
         }
       }
@@ -160,14 +163,18 @@ void Cgi::execute()
       {
         status = false;
         std::cerr << "Cgi::execute : freopen Faied" << std::endl;
+        clientFdPtr->events = POLLOUT;
         exit(1);
       }
-      alarm(6);
+      alarm(2);
       if (execve(argv[0], argv, envp) == -1)
       {
         std::cerr << "Cgi::execute : execve Faied" << std::endl;
+        clientFdPtr->events = POLLOUT;
         exit(1);
       }
+      clientFdPtr->events = POLLOUT;
+      exit(0);
     }
     else if (pid < 0)
     {
@@ -179,14 +186,38 @@ void Cgi::execute()
   if (pid > 0)
   {
     int stat;
-    clientFdPtr->events = POLLOUT;
-    waitpid(pid, &stat, WNOHANG);
-    if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
-      throw 502;
-    else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
-      throw 504;
-    else if (WEXITED && WIFSIGNALED(stat))
-      throw 502;
+    int child_pid = waitpid(pid, &stat, 0);
+    if (child_pid == pid)
+    {
+      this->cgiDone = true;
+      if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
+      {
+        std::cout << "------->| " << __LINE__ << std::endl;
+        // clientFdPtr->events = POLLOUT;
+        throw 502;
+      }
+      else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
+      {
+        clientFdPtr->events = POLLOUT;
+        throw 504;
+      }
+      else if (WEXITED && WIFSIGNALED(stat))
+      {
+        clientFdPtr->events = POLLOUT;
+        throw 500;
+      }
+    }
+    else if (child_pid < 0)
+    {
+      this->cgiDone = true;
+      clientFdPtr->events = POLLOUT;
+      throw 500;
+    }
+    else if (!child_pid)
+    {
+      std::cout << "---->| MAZAL|" << std::endl;
+      return;
+    }
   }
 }
 
@@ -197,7 +228,8 @@ st_ Cgi::getRespPath(void) const
 
 void Cgi::setUri(const st_ &uri) { _uri = uri; }
 
-void Cgi::setMethod(const st_ &method) {
+void Cgi::setMethod(const st_ &method)
+{
   _methode = method;
   _isPost = _methode == "POST";
 }
@@ -210,7 +242,8 @@ void Cgi::setHeaders(const std::map<st_, st_> &heads) { _reqHeaders = heads; }
 
 void Cgi::setUploadPath(const st_ &upPath) { upload_path = upPath; }
 
-void Cgi::setServer(const Server &srv) {
+void Cgi::setServer(const Server &srv)
+{
   this->srv = srv;
   _CgiScriptPath = srv.location[_location].cgi.second;
 }

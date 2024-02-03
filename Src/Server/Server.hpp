@@ -45,12 +45,9 @@ public:
     request req;
     Response resp;
     bool gotResp;
-	pollfd* clientFdPtr;
 
     Client() : gotResp(false) {}
-	Client(pollfd* fdPtr) : gotResp(false), clientFdPtr(fdPtr) {req.setPollFdPtr(clientFdPtr);}
 };
-
 
 class MServer
 {
@@ -62,8 +59,7 @@ class MServer
 		std::map<int, request> reqsMap;
 		std::map<int, Response> respMap;
 		std::map<int, bool> gotResp;
-		std::map<int, Client> mapClients;
-		int pollStat;
+		std::map<int, Client> clients;
 
 	public:
 		void handleClient(int clientFd);

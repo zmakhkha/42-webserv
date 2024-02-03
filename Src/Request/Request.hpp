@@ -25,103 +25,101 @@
 #include <vector>
 #include <cstddef>
 #include <sys/fcntl.h>
-#include <sys/poll.h>
 
 #define PAGE 65536
-#define  K 1024
-#define  M 1000 * 1024
-#define  G 1000 * 1000 * 1024
+#define K 1024
+#define M 1000 * 1024
+#define G 1000 * 1000 * 1024
 
-#define Map std::map < st_, st_ >
+#define Map std::map<st_, st_>
 #define st_ std::string
 
 class Cgi;
 class MServer;
 
-class request {
-	private :
-		Config	get_;
-		pollfd* clientFdPtr;
+class request
+{
+private:
+	pollfd *clientFdPtr;
+	Config get_;
+	Map headers;
+	bool parseCgi;
+	bool firstParse;
+	bool Parsed;
+	bool KeepAlive;
+	bool cgiReady;
+	int code;
+	int Meth;
+	int fd;
+	int contentlen;
+	st_ cgiBodyPath;
+	st_ upPath;
+	st_ Method_;
+	st_ UniformRI;
+	st_ HTTPVersion_;
+	st_ boundary;
+	st_ chunk;
+	st_ fileData;
+	st_ page1;
+	st_ page2;
+	bool chunkedHeaders;
+	bool isChunked;
+	int chunklen;
+	int tmpBodyFd;
+	bool singlePage;
+	long readBits;
 
-		Map headers;
-		bool parseCgi;
-        bool firstParse;
-		bool Parsed;
-		bool KeepAlive;
-        bool cgiReady;
-		int	code;
-        int Meth;
-        int fd;
-        int contentlen;
-		st_ cgiBodyPath;
-    	st_ upPath;
-		st_	Method_;
-		st_	UniformRI;
-		st_	HTTPVersion_;
-		st_ boundary;
-        st_ chunk;
-        st_ fileData;
-        st_ page1; 
-        st_ page2;
-		bool chunkedHeaders;
-		bool isChunked;
-		int chunklen;
-		int tmpBodyFd;
-		bool singlePage;
-		long readBits;
+public:
+	bool upDone;
+	Server Serv;
+	bool cgi;
+	int locate;
+	st_ cgiResult;
+	bool reading;
+	request();
+	request(st_ request);
+	void setMethod_(std::string Method_);
+	void setURI(std::string URI);
+	void setVersion(std::string version);
+	size_t getCode(void);
+	st_ getBoundary(void);
+	bool getBoolean(void);
+	const Map &getVector(void);
+	std::string &getVersion(void);
+	std::string &getURI(void);
+	std::string &getMethod_(void);
+	bool getConnection(void);
+	void printVec(void);
+	bool FillHeaders_(st_ request_);
+	int CheckForBody();
+	void feed();
+	bool checkURI(st_ URI);
+	void isItinConfigFile(st_ URI);
+	bool parseboundaryHed;
+	~request(void);
 
-	public :
-		bool upDone;
-		Server Serv;
-        bool cgi;
-		int	locate;
-		st_ cgiResult;
-        bool reading;
-		request();
-		request( st_ request );
-		void		setMethod_( std::string Method_ );
-		void		setURI( std::string URI );
-		void		setVersion( std::string version );
-		size_t		getCode( void );
-		st_			getBoundary( void );
-		bool		getBoolean( void );
-		const Map	&getVector( void );
-		std::string	&getVersion( void );
-		std::string	&getURI( void );
-		std::string	&getMethod_( void );
-		bool		getConnection( void );
-		void		printVec(void);
-		bool		FillHeaders_( st_ request_ );
-		int			CheckForBody();
-        void		feed();
-		bool		checkURI( st_ URI );
-		void 		isItinConfigFile( st_ URI );
-		bool parseboundaryHed;
-		~request( void );
-
-        int		hextodec(const std::string &s);
-        void	execboundary(std::string s, std::string boundary);
-        void	parseboundary(std::string chunk);
-        void	parsechunk(std::string &chunk);
-        void	parseheaders(std::string &page);
-        bool	validboundary(std::string tmp);
-        void	parseSimpleBoundary( std::string &page);
-        void	parseChunked( std::string &page);
-		void	parseMe(st_ request);
-        void	feedMe(const st_ &data);
-		bool	getReadStat(void) const;
-		void	fillCgiBody(const st_ &data);
-		void	clear_Obj();
-		void	handleCgi(const st_ &data);
-		void	countCgiBody();
-		void 	fillCgiBodyNb(const st_ &data);
-		void	chunkData(std::string &data);
-		bool 	maxBody();
-		Server getServer();
-		Cgi tmp;
-		void reCheckCgi();
-		void setPollFdPtr(pollfd* fdPtr) {
-        clientFdPtr = fdPtr;
-    }
-};	
+	int hextodec(const std::string &s);
+	void execboundary(std::string s, std::string boundary);
+	void parseboundary(std::string chunk);
+	void parsechunk(std::string &chunk);
+	void parseheaders(std::string &page);
+	bool validboundary(std::string tmp);
+	void parseSimpleBoundary(std::string &page);
+	void parseChunked(std::string &page);
+	void parseMe(st_ request);
+	void feedMe(const st_ &data);
+	bool getReadStat(void) const;
+	void fillCgiBody(const st_ &data);
+	void clear_Obj();
+	void handleCgi(const st_ &data);
+	void countCgiBody();
+	void fillCgiBodyNb(const st_ &data);
+	void chunkData(std::string &data);
+	bool maxBody();
+	Server getServer();
+	void setPollFdPtr(pollfd *fdPtr)
+	{
+		clientFdPtr = fdPtr;
+	}
+};
 #endif

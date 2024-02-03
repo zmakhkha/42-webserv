@@ -2,15 +2,16 @@
 
 #include "../ConfigFile/myconfig.hpp"
 #include "sys/poll.h"
+#include <sys/poll.h>
 
 #define BAD_GATEWAY 502
 #define phpPath "/Users/zmakhkha/Desktop/cgi/src/cgi/cgi-bin/php-cgi"
 #define pythonPath "/usr/bin/python3"
 #define st_ std::string
+
 class request;
 
-class Cgi
-{
+class Cgi{
 private:
 	st_ SERVER_SOFTWARE;
 	st_ SERVER_NAME;
@@ -38,6 +39,7 @@ private:
 	pid_t pid;
 	bool forked;
 	bool status;
+
 
 public:
 	Cgi();
