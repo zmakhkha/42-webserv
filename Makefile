@@ -32,6 +32,7 @@ $(OBJDIR)/%.o: %.cpp $(HEADER)  Makefile
 	@$(CC) $(FLAGS) -g -c $< -o $@ 
 
 clean: 
+	@Src/remove
 	@rm -rf $(OBJDIR) $(OBJ)
 	@echo  "🗑️   Deleting OBJS."
 

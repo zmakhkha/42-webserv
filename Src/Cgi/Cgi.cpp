@@ -129,7 +129,7 @@ void Cgi::execute()
     }
     char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
                     const_cast<char *>(_scriptPath.c_str()), NULL};
-    int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0644);
+    int fd = open(_respPath.c_str(), O_CREAT | O_RDWR, 0777);
     if (fd < 0)
     {
       status = false;

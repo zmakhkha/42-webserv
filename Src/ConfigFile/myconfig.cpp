@@ -14,6 +14,11 @@
 #include <fstream>
 #include <sys/stat.h>
 
+#include <iostream>
+#include <iomanip>
+#include <ctime>
+#include <sstream>
+
 Methods::Methods() : Get(false), Post(false), Delete(false) {}
 Methods::~Methods() {}
 

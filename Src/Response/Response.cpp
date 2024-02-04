@@ -276,6 +276,8 @@ void	Response::GETResource( request &req ) {
         path = path.substr(0, path.length() - 1);
 	try {
 		if (stat(path.c_str(), &stru_t) == 0) {
+			if (access(path.c_str(), W_OK) == -1)
+				throw 403;
 			if (S_ISREG(stru_t.st_mode))
 				is_file( path, req );
 			else if (S_ISDIR(stru_t.st_mode))
@@ -290,7 +292,8 @@ void	Response::GETResource( request &req ) {
 }
 void    Response::deleteFile( void ) {
 	if (access(inf.first_path.c_str(), W_OK) == 0) {
-        remove(inf.first_path.c_str());
+        if (remove(inf.first_path.c_str()) == -1)
+			throw 500;
         throw 204;
     }
     throw 403;
@@ -355,6 +358,8 @@ void	Response::DELResource( request &req ) {
 	if (srv.location[location].prefix == "/")
 		root += "/";
 	st_	path = root + req.getURI().substr(srv.location[location].prefix.length());
+	 if (path[path.length() - 1] == '/')
+        path = path.substr(0, path.length() - 1);
 	try {
 		DeleteContent( req, path );
 	}

@@ -155,7 +155,7 @@ void MServer::sendReesp(int index)
     if (re == -1)
       return (deleteClient(index), (void)0);
     if (!re)
-      return;
+      respMap[index].headersent = true;
     respMap[index].headersent = true;
   }
 
@@ -182,7 +182,7 @@ void MServer::sendReesp(int index)
       if (re == -1)
         return (delete[] buff, close(fd), deleteClient(index), (void)0);
       if (!re)
-        return;
+        return(delete[]  buff, fds[index].events = POLLOUT,(void)0);
       delete[] buff;
     }
     fds[index].events = POLLOUT;

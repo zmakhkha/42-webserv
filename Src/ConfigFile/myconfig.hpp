@@ -79,6 +79,7 @@ class Config
         static const std::vector<Server> &getConfig();
         static Server getservconf(std::string server_name, std::string host);
         static void	LooponServers( std::string path );
+
 };
 Server	parsing_conf(std::string data);
 // void	missingpoint( std::string	parse );

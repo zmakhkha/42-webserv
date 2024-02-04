@@ -184,12 +184,14 @@ bool request::checkURI(st_ URI)
 request::~request(void)
 {
   close(tmpBodyFd);
-  FILE *file1 = fopen(cgiResStr, "w");
+
+
+  FILE *file1 = fopen(cgiResult.c_str(), "w");
   if (file1 != nullptr)
     fclose(file1);
   if (cgi && getMethod_() == "POST")
   {
-    FILE *file2 = fopen(cgiBodyStr, "w");
+    FILE *file2 = fopen(cgiBodyPath.c_str(), "w");
     if (file2 != nullptr)
       fclose(file2);
   }
@@ -384,7 +386,7 @@ request::request()
   //   cgif++;
   // std::string file = std::string(cgiBodyStr) + std::to_string(cgif++);
   // tmpBodyFd= open(file.c_str(), O_CREAT | O_RDWR, 0777);
-  cgiBodyPath = cgiBodyStr;
+  cgiBodyPath = st_(cgiBodyStr + generate_unique_key());
   readBits = 0;
   upDone = 0;
   cgi = false;
@@ -546,7 +548,7 @@ void request::feedMe(const st_ &data)
   try
   {
     st_ str(data.c_str(),   data.length());
-    cgiResult = cgiResStr;
+    cgiResult = st_ (cgiResStr + generate_unique_key());
     if (firstParse == false)
       parseMe(data);
     this->Serv = Config::getservconf(headers["server-name"], headers["host"]);
@@ -631,4 +633,20 @@ bool request::maxBody()
 Server request::getServer()
 {
   return this->Serv;
+}
+
+std::string generate_unique_key() {
+    std::time_t now = std::time(NULL);
+    std::tm *local_time = std::localtime(&now);
+
+    std::ostringstream key;
+    key << std::setw(2) << std::setfill('0') << local_time->tm_sec
+        << std::setw(2) << std::setfill('0') << local_time->tm_min
+        << std::setw(2) << std::setfill('0') << local_time->tm_hour
+        << std::setw(2) << std::setfill('0') << local_time->tm_mday
+        << std::setw(2) << std::setfill('0') << local_time->tm_wday
+        << std::setw(2) << std::setfill('0') << (local_time->tm_mon + 1) // Month is zero-based, adding 1 to make it 1-based
+        << std::setw(2) << std::setfill('0') << (local_time->tm_year % 100);
+
+    return key.str();
 }

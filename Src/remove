@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Function to remove files matching the pattern "r*"
+rmove() {
+    for file in /tmp/r*; do
+        if [ -e "$file" ]; then
+            # echo "Removing file: $file"
+            rm "$file"
+        fi
+    done
+    for file in /tmp/f*; do
+        if [ -e "$file" ]; then
+            # echo "Removing file: $file"
+            rm "$file"
+        fi
+    done
+}
+
+rmove

@@ -117,9 +117,20 @@ public:
 	void chunkData(std::string &data);
 	bool maxBody();
 	Server getServer();
-	// void setPollFdPtr(pollfd *fdPtr)
-	// {
-	// 	clientFdPtr = fdPtr;
-	// }
+	std::string generate_unique_key() {
+    std::time_t now = std::time(NULL);
+    std::tm *local_time = std::localtime(&now);
+
+    std::ostringstream key;
+    key << std::setw(2) << std::setfill('0') << local_time->tm_sec
+        << std::setw(2) << std::setfill('0') << local_time->tm_min
+        << std::setw(2) << std::setfill('0') << local_time->tm_hour
+        << std::setw(2) << std::setfill('0') << local_time->tm_mday
+        << std::setw(2) << std::setfill('0') << local_time->tm_wday
+        << std::setw(2) << std::setfill('0') << (local_time->tm_mon + 1) // Month is zero-based, adding 1 to make it 1-based
+        << std::setw(2) << std::setfill('0') << (local_time->tm_year % 100);
+
+    return key.str();
+}
 };
 #endif
