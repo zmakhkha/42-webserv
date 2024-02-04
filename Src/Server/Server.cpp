@@ -113,7 +113,7 @@ void MServer::routin()
     int status = poll(fds, MAX_CLIENTS, -1);
     if (status == -1)
     {
-      std::cerr << __FUNCTION__ << __LINE__ << " Error in poll" << std::endl;
+      std::cerr << __FUNCTION__ << __LINE__ << " : Error in poll" << std::endl;
       exit(EXIT_FAILURE);
     }
     i = -1;
