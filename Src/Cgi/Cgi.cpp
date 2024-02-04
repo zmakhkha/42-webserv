@@ -124,8 +124,8 @@ void Cgi::execute()
     envp[_envLst.size()] = NULL;
     if (access(_CgiScriptPath.c_str(), F_OK) != 0)
     {
-      perror("access : ");
-      exit(1);
+      std::cerr << "Cgi::execute : access Failed" << std::endl;
+      throw 502;
     }
     char *argv[] = {const_cast<char *>(_CgiScriptPath.c_str()),
                     const_cast<char *>(_scriptPath.c_str()), NULL};
@@ -133,7 +133,9 @@ void Cgi::execute()
     if (fd < 0)
     {
       status = false;
-      perror("open : ");
+      std::cerr << "Cgi::execute : open Faied" << std::endl;
+        status = false;
+        exit(1);
     }
     FILE *out = freopen(_respPath.c_str(), "w", stdout);
     if (_isPost)
@@ -141,37 +143,37 @@ void Cgi::execute()
       FILE *in = freopen(_postBody.c_str(), "r", stdin);
       if (in == nullptr)
       {
-        perror("freopen : ");
+        std::cerr << "Cgi::execute : freopen Faied" << std::endl;
         status = false;
+        exit(1);
       }
     }
     if (out == nullptr)
     {
       status = false;
-      perror("freopen : ");
+      std::cerr << "Cgi::execute : freopen Faied" << std::endl;
     }
     alarm(2);
     if (execve(argv[0], argv, envp) == -1)
     {
-      perror("execve");
-      exit(1);
+      std::cerr << "Cgi::execute : execve Faied" << std::endl;
+      throw 502;
     }
   }
   else if (pid > 0)
   {
     int stat;
-    waitpid(pid, &stat, WNOHANG);
-
-    if (WEXITED && WEXITSTATUS(stat) != 0 || !status)
+    waitpid(pid, &stat, 0);
+    if (WEXITSTATUS(stat) != 0 || !status)
       throw 502;
-    else if (WEXITED && WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
+    else if (WIFSIGNALED(stat) && WTERMSIG(stat) == SIGALRM)
       throw 504;
-    else if (WEXITED && WIFSIGNALED(stat))
+    else if (WIFSIGNALED(stat))
       throw 502;
   }
   else
   {
-    std::cerr << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << " :fork failed" << std::endl;
+    std::cerr << "Cgi::execute : fork Faied" << std::endl;
     throw 500;
   }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ConfigFile/myconfig.hpp"
+#include "../Response/Response.hpp"
 
 #define BAD_GATEWAY 502
 #define phpPath "/Users/zmakhkha/Desktop/cgi/src/cgi/cgi-bin/php-cgi"
